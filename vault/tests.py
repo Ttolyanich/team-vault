@@ -48,12 +48,19 @@ class VaultSecurityTests(TestCase):
         with self.assertRaises(Exception):
             crypto.unseal(envelope, "record:1")
 
-    def test_local_admin_login_only(self):
+    def test_local_admin_and_local_user_login(self):
         response = self.client.post(reverse("login"), {"username": "admin", "password": "Admin-test-password-2026"})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.client.get(reverse("home")).status_code, 200)
         self.client.logout()
         self.member.set_password("Member-test-password-2026")
+        self.member.save()
+        # Active local user can log in
+        response = self.client.post(reverse("login"), {"username": "member", "password": "Member-test-password-2026"})
+        self.assertEqual(response.status_code, 302)
+        self.client.logout()
+        # Inactive local user cannot log in
+        self.member.is_active = False
         self.member.save()
         response = self.client.post(reverse("login"), {"username": "member", "password": "Member-test-password-2026"})
         self.assertEqual(response.status_code, 400)
