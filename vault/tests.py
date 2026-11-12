@@ -340,3 +340,62 @@ class VaultSecurityTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.is_superuser)
         self.assertEqual(self.client.get(reverse("activity")).status_code, 200)
+
+    def test_version_history_inspection_reveal_and_restore(self):
+        self.as_user(self.member)
+        # Edit item to create version 2
+        edit_data = {
+            "title": "Рабочая УЗ",
+            "kind": "account",
+            "vault": self.vault.pk,
+            "version": 1,
+            "login": "work-updated",
+            "password": "New-secret-pass-2026",
+            "url": "https://example.com/updated",
+            "note": "updated note",
+            "tags": "tag1",
+        }
+        res = self.client.post(reverse("item_edit", args=[self.item.pk]), edit_data)
+        self.assertEqual(res.status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.version, 2)
+
+        # Check item page displays version history
+        page = self.client.get(reverse("item", args=[self.item.pk]))
+        self.assertContains(page, "История версий")
+        self.assertContains(page, "Ревизия №1")
+        self.assertContains(page, "Ревизия №2")
+
+        # View version 1 details
+        v1_url = reverse("item_version", args=[self.item.pk, 1])
+        v1_page = self.client.get(v1_url)
+        self.assertEqual(v1_page.status_code, 200)
+        self.assertContains(v1_page, "Версия №1")
+        self.assertContains(v1_page, "work")
+
+        # Reveal password from version 1
+        v1_reveal_url = reverse("item_version_reveal", args=[self.item.pk, 1])
+        reveal_res = self.client.post(v1_reveal_url, {"field": "password"})
+        self.assertEqual(reveal_res.status_code, 200)
+        self.assertEqual(reveal_res.json()["value"], self.secret)
+        self.assertTrue(AuditEvent.objects.filter(action="item.version_revealed", target=str(self.item.pk)).exists())
+
+        # Restore version 1
+        v1_restore_url = reverse("item_version_restore", args=[self.item.pk, 1])
+        restore_res = self.client.post(v1_restore_url)
+        self.assertEqual(restore_res.status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.version, 3)
+
+        # Current version payload now matches version 1
+        curr_payload = crypto.unseal(self.item.versions.get(number=3).payload, f"item:{self.item.pk}:3")
+        self.assertEqual(curr_payload["password"], self.secret)
+        self.assertEqual(curr_payload["login"], "work")
+        self.assertTrue(AuditEvent.objects.filter(action="item.version_restored", target=str(self.item.pk)).exists())
+
+        # Unauthorized user (other) cannot view, reveal, or restore
+        self.as_user(self.other)
+        self.assertEqual(self.client.get(v1_url).status_code, 403)
+        self.assertEqual(self.client.post(v1_reveal_url, {"field": "password"}).status_code, 403)
+        self.assertEqual(self.client.post(v1_restore_url).status_code, 403)
+

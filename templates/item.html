@@ -82,8 +82,44 @@
 </section>
 <section class="panel">
 <h3>О записи</h3>
-<p class="muted">Версия {{ item.version }}<br>Изменена {{ item.updated_at|date:'d.m.Y H:i' }}</p>
-<p>{{ item.tags }}</p>
+<p class="muted">Текущая версия {{ item.version }}<br>Изменена {{ item.updated_at|date:'d.m.Y H:i' }}</p>
+{% if item.tags %}<p>{{ item.tags }}</p>{% endif %}
+</section>
+<section class="panel">
+<div class="heading-with-help">
+  <h3>История версий</h3>
+  {% include 'help.html' with help_id='versions-help' help_label='Об истории версий' help_text='При каждом изменении сохраняется зашифрованная копия. Вы можете просмотреть старые значения или восстановить прошлую версию.' %}
+</div>
+<div class="version-list">
+{% for v in versions %}
+<div class="version-row{% if v.number == item.version %} is-active{% endif %}">
+  <div class="version-row-main">
+    <div class="version-row-title">
+      <strong>Ревизия №{{ v.number }}</strong>
+      {% if v.number == item.version %}<span class="version-badge">текущая</span>{% endif %}
+    </div>
+    <div class="version-row-meta muted">
+      {{ v.author }} · {{ v.created_at|date:'d.m.Y H:i' }}
+    </div>
+  </div>
+  <div class="version-row-actions">
+    {% if v.number == item.version %}
+      <span class="muted" style="font-size:12px;">Активная версия</span>
+    {% else %}
+      <a class="text-button" href="{% url 'item_version' item.pk v.number %}">Просмотреть</a>
+      {% if rights.edit %}
+      <form method="post" action="{% url 'item_version_restore' item.pk v.number %}" data-confirm="Восстановить версию №{{ v.number }}? Все поля логина, пароля, адреса и заметки будут скопированы в новую версию.">
+        {% csrf_token %}
+        <button class="text-button danger-text">Восстановить</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<p class="muted">История недоступна.</p>
+{% endfor %}
+</div>
 </section>
 </aside>
 </div>

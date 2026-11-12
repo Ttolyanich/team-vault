@@ -911,3 +911,17 @@ body.nav-open .sidebar{transform:translateX(0);visibility:visible}
 }
 
 }
+
+.version-list{display:flex;flex-direction:column;gap:10px}
+.version-row{padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:flex;flex-direction:column;gap:6px;font-size:13px}
+.version-row.is-active{border-color:var(--accent);background:var(--pale)}
+.version-row-main{display:flex;flex-direction:column;gap:3px}
+.version-row-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.version-badge{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--accent);color:#fff;font-weight:600}
+.version-row-actions{display:flex;align-items:center;gap:12px;margin-top:4px}
+.version-row-actions form{display:inline}
+.version-row-actions .text-button{padding:2px 0}
+.text-button.danger-text{color:var(--danger)}
+.text-button.danger-text:hover{color:var(--danger);text-decoration:underline}
+[data-theme="dark"] .version-row.is-active{background:rgba(59, 130, 246, 0.12);border-color:var(--accent)}
+

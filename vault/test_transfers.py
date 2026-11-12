@@ -55,11 +55,14 @@ class TransferTests(TestCase):
         self.assertEqual(self.client.get(reverse("item",args=[self.item.pk])).status_code,403)
         self.assertTrue(AuditEvent.objects.filter(action="item.moved",target=str(self.item.pk),vault=self.target).exists())
 
-    def test_admin_may_move_only_within_same_department(self):
+    def test_admin_may_move_across_departments_while_head_restricted_to_own_department(self):
+        self.client.force_login(self.head)
+        self.assertEqual(self.submit("move", target=self.foreign).status_code, 400)
         self.client.force_login(self.admin)
-        self.assertEqual(self.submit("move",target=self.foreign).status_code,400)
-        self.item.refresh_from_db();self.assertEqual(self.item.vault,self.source)
-        self.assertEqual(self.submit("move").status_code,302)
+        self.assertEqual(self.submit("move", target=self.foreign).status_code, 302)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.vault, self.foreign)
+        self.assertEqual(self.item.version, 2)
 
     def test_editor_and_other_department_head_cannot_move(self):
         for person in (self.member,self.other):

@@ -220,12 +220,70 @@ def item_detail(request, item_id):
         visible_values = {field: payload.get(field, "") for field in ("login", "url", "note")}
         audit(request, "item.opened", item.pk, item.vault, fields=list(visible_values), version=item.version)
     from .views_workspace import vault_url
+    versions = item.versions.select_related("author").order_by("-number")
     return render(request, "item.html", {"item": item, "rights": rights, "leader": leader, "visible_values": visible_values,
         "back_url": vault_url(request.user, item.vault), "recovery_manager": recovery_manager,
         "can_move_item": can_move_item(request.user,item), "can_copy_item": can_copy_item(request.user,item),
         "personal_manager": effective_manager(item.vault.personal_owner) if item.vault.personal_owner_id else None,
         "has_totp": TotpConfig.objects.filter(item=item).exists(), "totp_form": TotpForm(), "recovery_form": RecoveryForm(),
-        "codes": item.recovery_codes.all() if leader else [], "members": item.vault.memberships.select_related("user")})
+        "codes": item.recovery_codes.all() if leader else [], "members": item.vault.memberships.select_related("user"),
+        "versions": versions})
+
+
+@login_required
+def item_version_detail(request, item_id, version_number):
+    item = item_for(request, item_id)
+    rights = permissions(request.user, item.vault)
+    version_obj = get_object_or_404(ItemVersion.objects.select_related("author"), item=item, number=version_number)
+    with transaction.atomic():
+        locked_item = locked_item_for(request, item.pk)
+        payload = crypto.unseal(version_obj.payload, f"item:{item.pk}:{version_obj.number}")
+        visible_values = {field: payload.get(field, "") for field in ("login", "url", "note")}
+        audit(request, "item.version_opened", item.pk, item.vault, version=version_number)
+    return render(request, "item_version.html", {
+        "item": item,
+        "version_obj": version_obj,
+        "rights": rights,
+        "visible_values": visible_values,
+        "is_current": (version_number == item.version),
+        "back_url": reverse("item", args=[item.pk]),
+    })
+
+
+@login_required
+@require_POST
+def item_version_reveal(request, item_id, version_number):
+    item = item_for(request, item_id)
+    version_obj = get_object_or_404(ItemVersion, item=item, number=version_number)
+    field = request.POST.get("field")
+    if field not in ("login", "password", "url", "note"):
+        return JsonResponse({"error": "Поле недоступно."}, status=400)
+    with transaction.atomic():
+        locked_item = locked_item_for(request, item.pk)
+        payload = crypto.unseal(version_obj.payload, f"item:{item.pk}:{version_obj.number}")
+        audit(request, "item.version_revealed", item.pk, item.vault, field=field, version=version_number)
+    return JsonResponse({"value": payload.get(field, "")})
+
+
+@login_required
+@require_POST
+def item_version_restore(request, item_id, version_number):
+    with transaction.atomic():
+        item = locked_item_for(request, item_id, "edit")
+        version_obj = get_object_or_404(ItemVersion, item=item, number=version_number)
+        payload = crypto.unseal(version_obj.payload, f"item:{item.pk}:{version_obj.number}")
+        previous_version = item.version
+        item.version += 1
+        item.save()
+        ItemVersion.objects.create(
+            item=item,
+            number=item.version,
+            payload=crypto.seal(payload, f"item:{item.pk}:{item.version}"),
+            author=request.user,
+        )
+        audit(request, "item.version_restored", item.pk, item.vault, restored_from=version_number, previous_version=previous_version, new_version=item.version)
+        messages.success(request, f"Запись восстановлена из версии №{version_number}. Создана новая версия №{item.version}.")
+    return redirect("item", item_id=item.pk)
 
 
 @login_required

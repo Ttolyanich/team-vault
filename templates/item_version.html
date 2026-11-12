@@ -1,0 +1,62 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{{ back_url|default:'/' }}">← К текущей записи</a>
+<div class="page-heading">
+<div>
+<span class="eyebrow">{{ item.vault.name }} · Архивная ревизия</span>
+<h1>{{ item.title }} — Версия №{{ version_obj.number }}</h1>
+<p class="muted">Автор версии: {{ version_obj.author }} · Сохранена: {{ version_obj.created_at|date:'d.m.Y H:i' }}</p>
+</div>
+{% if rights.edit and not is_current %}
+<div class="heading-actions">
+<form method="post" action="{% url 'item_version_restore' item.pk version_obj.number %}" data-confirm="Восстановить версию №{{ version_obj.number }}? Все поля логина, пароля, адреса и заметки будут скопированы в новую текущую версию.">{% csrf_token %}<button class="button primary">Восстановить эту версию</button></form>
+</div>
+{% endif %}
+</div>
+
+{% if is_current %}
+<div class="notice" style="margin-bottom: 24px;">
+Это текущая (активная) версия записи. Для редактирования вернитесь к <a href="{% url 'item' item.pk %}">основной карточке</a>.
+</div>
+{% else %}
+<div class="notice" style="margin-bottom: 24px;">
+Вы просматриваете архивную ревизию от {{ version_obj.created_at|date:'d.m.Y H:i' }}. Текущая активная версия — №{{ item.version }}.
+</div>
+{% endif %}
+
+<div class="detail-grid">
+<section class="panel">
+<h2>Данные для входа в версии №{{ version_obj.number }}</h2>
+{% csrf_token %}
+<div class="secret-row">
+<label for="value-login">Логин</label>
+<input id="value-login" value="{{ visible_values.login }}" placeholder="Не указан" readonly autocomplete="off">
+<button class="icon-button" aria-label="Копировать логин" title="Копировать логин" data-reveal="login" data-url="{% url 'item_version_reveal' item.pk version_obj.number %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="secret-row">
+<label for="value-password">Пароль или токен</label>
+<input id="value-password" value="••••••••••••" data-secret-value readonly autocomplete="off">
+<button class="button secondary" aria-controls="value-password" aria-pressed="false" data-reveal="password" data-url="{% url 'item_version_reveal' item.pk version_obj.number %}" data-output="value-password">Показать</button>
+<button class="icon-button" aria-label="Копировать пароль или токен" title="Копировать пароль или токен" data-reveal="password" data-url="{% url 'item_version_reveal' item.pk version_obj.number %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="secret-row">
+<label for="value-url">Адрес сервиса</label>
+<input id="value-url" value="{{ visible_values.url }}" placeholder="Не указан" readonly>
+<button class="icon-button" aria-label="Копировать адрес сервиса" title="Копировать адрес сервиса" data-reveal="url" data-url="{% url 'item_version_reveal' item.pk version_obj.number %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="note-field">
+<label for="value-note">Рабочая заметка</label>
+<textarea id="value-note" rows="3" readonly placeholder="Заметка не добавлена">{{ visible_values.note }}</textarea>
+</div>
+</section>
+<aside>
+<section class="panel">
+<h3>О ревизии</h3>
+<p class="muted">Номер ревизии: <strong>№{{ version_obj.number }}</strong><br>
+Создана: <strong>{{ version_obj.created_at|date:'d.m.Y H:i' }}</strong><br>
+Автор изменений: <strong>{{ version_obj.author }}</strong></p>
+<hr>
+<p><a class="text-button" href="{% url 'item' item.pk %}">← Вернуться к карточке записи</a></p>
+</section>
+</aside>
+</div>
+{% endblock %}
