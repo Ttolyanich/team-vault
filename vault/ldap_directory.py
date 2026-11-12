@@ -80,7 +80,7 @@ def authenticate_directory(config, username, password):
     safe_name = escape_filter_chars(username)
     search_filter = ("(&(objectCategory=person)(objectClass=user)"
         "(!(userAccountControl:1.2.840.113556.1.4.803:=2))"
-        f"(|(sAMAccountName={safe_name})(userPrincipalName={safe_name}))")
+        f"(|(sAMAccountName={safe_name})(userPrincipalName={safe_name})(mail={safe_name})(proxyaddresses=smtp:{safe_name}))")
     if config.allowed_group_dn:
         search_filter += f"(memberOf:1.2.840.113556.1.4.1941:={escape_filter_chars(config.allowed_group_dn)})"
     search_filter += ")"
