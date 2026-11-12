@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">УПРАВЛЕНИЕ ВХОДОМ</span><h1>Microsoft 365</h1><p class="muted">Подключите рабочие учётные записи компании. Доступ к хранилищам назначается отдельно.</p></div>
+<span class="connection-status {% if microsoft.ready %}connected{% endif %}">{% if microsoft.ready %}Вход включён{% else %}Вход выключен{% endif %}</span></div>
+<div class="settings-layout">
+<section class="panel"><h2>Параметры приложения Entra</h2>
+<p class="muted">{% if microsoft.source == 'database' %}Настройки сохранены в приложении.{% else %}Настройки из .env используются, пока вы не сохраните их здесь.{% endif %}</p>
+<form method="post" class="stack">{% csrf_token %}{{ form.non_field_errors }}
+{% for field in form %}
+{% if field.is_hidden %}{{ field }}{% else %}
+<div class="form-field {% if field.field.widget.input_type == 'checkbox' %}checkbox-field{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>
+{% endif %}{% endfor %}
+<p class="secret-status">{% if microsoft.secret_set %}Секрет сохранён. Его значение скрыто.{% else %}Секрет приложения пока не сохранён.{% endif %}</p>
+<div class="form-actions"><button class="button primary">Сохранить настройки</button></div></form></section>
+<aside>
+<section class="panel"><h2>Адрес возврата</h2><p class="muted">В Entra → App registrations → Authentication добавьте платформу <strong>Web</strong> и этот Redirect URI:</p>
+<input class="callback-value" value="{{ callback_url }}" readonly aria-label="Redirect URI">
+<button type="button" class="icon-button" aria-label="Копировать адрес возврата" title="Копировать адрес возврата" data-copy-value="{{ callback_url }}">{% include 'copy_icon.html' %}</button>
+<p class="muted">Адрес должен совпадать полностью, включая порт и завершающий слеш.</p></section>
+<section class="panel"><h2>Проверка подключения</h2><p class="muted">Сначала сохраните настройки, затем проверьте доступность каталога.</p>
+<button type="button" class="button secondary" id="microsoft-check" data-url="{% url 'microsoft_check' %}">Проверить подключение</button>
+{% if microsoft.ready %}<a class="text-button" href="{% url 'sso_start' %}" target="_blank" rel="noopener">Проверить вход в новом окне ↗</a>{% endif %}
+<p class="muted">Успешность входа проверяется отдельно: требуется действующий секрет и разрешение пользователя в Entra.</p></section>
+<section class="panel"><h2>Что подготовить в Entra</h2><ol class="setup-steps"><li>Приложение типа Single tenant.</li><li>Application Client ID и Directory Tenant ID из Overview.</li><li>Client Secret: скопируйте <strong>Value</strong>, а не Secret ID.</li><li>Redirect URI, показанный выше.</li><li>Разрешённых сотрудников в Enterprise application.</li></ol><p class="muted">Базовый вход использует openid, profile и email. Graph-доступ к каталогу для него не требуется.</p></section>
+</aside></div>
+{% endblock %}

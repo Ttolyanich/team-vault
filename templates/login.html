@@ -1,0 +1,61 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вход — {{ app_name }}</title>
+<link rel="icon" type="image/svg+xml" sizes="any" href="{% static 'favicon.svg' %}?v=1">
+<script src="{% static 'theme.js' %}?v=2"></script>
+<link rel="stylesheet" href="{% static 'app.css' %}?v=13">
+</head>
+<body class="login-page">
+<div class="login-theme">{% include 'theme_control.html' %}</div>
+<main class="login-shell">
+<section class="login-intro">
+<span class="eyebrow">РАБОЧИЕ ДОСТУПЫ</span>
+<h1>Нужный доступ.<br>Без лишних вопросов.</h1>
+<p>Учётные записи команды, рабочие заметки и коды подтверждения — в одном понятном пространстве.</p>
+<div class="intro-lines">
+<span>01 &nbsp; Войдите своей учётной записью</span>
+<span>02 &nbsp; Найдите нужный сервис</span>
+<span>03 &nbsp; Получите доступ и продолжайте работу</span>
+</div>
+</section>
+<section class="login-card">
+<h2>Добро пожаловать</h2>
+<p class="muted">Войдите в {{ app_name|lower }}.</p>
+{% if error %}
+<p class="error" role="alert">{{ error }}</p>
+{% endif %}
+{% if entra_ready %}
+<a class="button primary full" href="{% url 'sso_start' %}">
+Войти через Microsoft</a>
+{% elif not ldap_ready %}
+<div class="notice">Вход сотрудников через Microsoft будет доступен после настройки администратором.</div>
+{% endif %}
+{% if ldap_ready or ldap_error %}
+<details {% if ldap_error or not entra_ready %}open{% endif %}>
+<summary>Вход через домен AD</summary>
+{% if ldap_error %}<p class="error" role="alert">{{ ldap_error }}</p>{% endif %}
+<form method="post" action="{% url 'ldap_login' %}" class="stack">{% csrf_token %}
+{% for field in ldap_login_form %}<div class="form-field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+<button class="button primary full">Войти через AD</button>
+</form></details>
+{% endif %}
+<details {% if error or not entra_ready and not ldap_ready %}open{% endif %}>
+<summary>Вход по логину и паролю</summary>
+<form method="post" class="stack">
+{% csrf_token %}
+<label>Логин<input name="username" autocomplete="username" required maxlength="150">
+</label>
+<label>Пароль<input type="password" name="password" autocomplete="current-password" required>
+</label>
+<button class="button {% if not entra_ready and not ldap_ready %}primary{% else %}secondary{% endif %} full">Войти</button>
+</form>
+</details>
+<small class="muted">Используйте только для рабочих данных компании.</small>
+</section>
+</main>
+</body>
+</html>

@@ -1,0 +1,56 @@
+services:
+  app:
+    image: ghcr.io/ttolyanich/team-vault:${APP_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-Рабочие доступы}
+      PUBLIC_URL: ${PUBLIC_URL}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      VAULT_MASTER_KEY: ${VAULT_MASTER_KEY}
+      LOCAL_ADMIN_USERNAME: ${LOCAL_ADMIN_USERNAME:-admin}
+      LOCAL_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD}
+      SECURE_COOKIES: ${SECURE_COOKIES:-true}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-3600}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      ENTRA_TENANT_ID: ${ENTRA_TENANT_ID:-}
+      ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID:-}
+      ENTRA_CLIENT_SECRET: ${ENTRA_CLIENT_SECRET:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${APP_PORT:-8081}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: vault_root
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      APP_DB_NAME: ${POSTGRES_DB}
+      APP_DB_USER: ${POSTGRES_USER}
+      APP_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/10-app.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $$APP_DB_USER -d $$APP_DB_NAME"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+volumes:
+  database:

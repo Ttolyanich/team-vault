@@ -1,0 +1,46 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading">
+<div>
+<h1>Участники хранилища</h1>
+<p class="muted">{{ vault.name }} — у каждого сотрудника собственные права.</p>
+</div>
+</div>
+<section class="panel">
+<table>
+<thead>
+<tr>
+<th>Сотрудник</th>
+<th>Доступ</th>
+<th>Коды подтверждения</th>
+</tr>
+</thead>
+<tbody>
+{% for member in members %}
+<tr>
+<td>{{ member.user }}</td>
+<td>{{ member.get_role_display }}</td>
+<td>{{ member.can_totp|yesno:'Разрешены,Не разрешены' }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<h2>Изменить доступ</h2>
+<form method="post" class="stack">
+{% csrf_token %}
+<label>Сотрудник<select name="user" id="legacy-member" required data-search-select data-source="{% url 'choices' %}?kind=people&amp;purpose=membership&amp;vault={{ vault.pk }}">
+<option value="">Найти сотрудника</option>
+</select>
+</label>
+<label>Полномочие<select name="role">
+<option value="reader">Читатель</option>
+<option value="editor">Редактор</option>
+<option value="owner">Владелец</option>
+<option value="remove">Удалить назначение</option>
+</select>
+</label>
+<label class="check">
+<input type="checkbox" name="can_totp" checked> Разрешить запрос кодов подтверждения</label>
+<button class="button primary">Сохранить доступ</button>
+</form>
+</section>
+{% endblock %}

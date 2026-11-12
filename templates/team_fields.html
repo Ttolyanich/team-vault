@@ -1,0 +1,1 @@
+{{ form.non_field_errors }}{% for field in form %}{% if field.is_hidden %}{{ field }}{% else %}<div class="form-field {% if field.field.widget.input_type == 'checkbox' %}checkbox-field{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endif %}{% endfor %}

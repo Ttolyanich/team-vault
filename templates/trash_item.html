@@ -1,0 +1,11 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{% url 'trash' %}">← В корзину</a>
+<div class="page-heading"><div><span class="eyebrow">ПРОСМОТР В КОРЗИНЕ</span><h1>{{ item.title }}</h1><p class="muted">{{ item.vault.name }} · версия {{ item.version }}</p></div>{% if not item.vault.deleted %}<form method="post" action="{% url 'item_restore' item.pk %}" data-confirm="Восстановить секрет с действующими правами хранилища?">{% csrf_token %}<button class="button primary">Восстановить секрет</button></form>{% endif %}</div>
+<div class="notice">Это удалённая запись. Редактирование и выдача TOTP недоступны. Просмотр фиксируется в журнале.{% if item.vault.deleted %} Для восстановления сначала <a href="{% url 'trash' %}?vault={{ item.vault_id }}">восстановите хранилище</a>.{% endif %}</div>
+<section class="panel form-panel"><h2>Сохранённые данные</h2>{% csrf_token %}
+<div class="secret-row"><label for="value-login">Логин</label><input id="value-login" value="{{ visible_values.login }}" placeholder="Не указан" readonly></div>
+<div class="secret-row"><label for="value-password">Пароль или токен</label><input id="value-password" value="••••••••••••" data-secret-value readonly autocomplete="off"><button class="button secondary" aria-controls="value-password" aria-pressed="false" data-reveal="password" data-url="{% url 'trash_reveal' item.pk %}" data-output="value-password">Показать</button><button class="icon-button" aria-label="Копировать пароль или токен" title="Копировать пароль или токен" data-reveal="password" data-url="{% url 'trash_reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button></div>
+<div class="secret-row"><label for="value-url">Адрес сервиса</label><input id="value-url" value="{{ visible_values.url }}" placeholder="Не указан" readonly></div>
+<div class="note-field"><label for="value-note">Рабочая заметка</label><textarea id="value-note" rows="4" readonly>{{ visible_values.note }}</textarea></div>
+<p class="muted">История версий, TOTP-настройка и резервные коды сохранены. Правила доступа к резервным кодам не меняются.</p></section>
+{% endblock %}

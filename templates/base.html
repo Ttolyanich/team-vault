@@ -1,0 +1,73 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ app_name }}</title>
+<link rel="icon" type="image/svg+xml" sizes="any" href="{% static 'favicon.svg' %}?v=1">
+<script src="{% static 'theme.js' %}?v=2"></script>
+<link rel="stylesheet" href="{% static 'app.css' %}?v=13">
+<script src="{% static 'search-select.js' %}?v=2" defer></script>
+<script src="{% static 'app.js' %}?v=11" defer>
+</script>
+</head>
+<body>
+<div class="layout">
+<button class="nav-backdrop" type="button" aria-label="Закрыть меню" tabindex="-1" hidden data-nav-close></button>
+<aside class="sidebar" id="main-sidebar" tabindex="-1">
+<div class="sidebar-heading">
+<a class="brand" href="{% url 'home' %}">
+<span class="brand-mark">⌘</span>
+<span>{{ app_name }}</span>
+</a>
+<button type="button" class="menu-button menu-close" aria-label="Закрыть меню" data-nav-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+</div>
+<nav aria-label="Главное меню">
+<div class="nav-group" role="group" aria-labelledby="nav-workspace">
+<p class="nav-caption" id="nav-workspace">РАБОЧЕЕ ПРОСТРАНСТВО</p>
+<a href="{% url 'home' %}" {% if nav_section == 'shared' %}class="active" aria-current="page"{% endif %}>Общие хранилища</a>
+<a href="{% url 'home' %}?section=personal" {% if nav_section == 'personal' %}class="active" aria-current="page"{% endif %}>Мои рабочие секреты</a>
+</div>
+{% if user.is_superuser %}
+<details class="nav-admin" {% if nav_section != 'shared' and nav_section != 'personal' %}open{% endif %}><summary>Администрирование</summary><div class="nav-group" role="group" aria-label="Администрирование">
+<a href="{% url 'team' %}" {% if nav_section == 'team' %}class="active" aria-current="page"{% endif %}>Команда</a>
+<a href="{% url 'staff_directory' %}" {% if nav_section == 'staff_directory' %}class="active" aria-current="page"{% endif %}>Секреты сотрудников</a>
+<a href="{% url 'all_vaults' %}" {% if nav_section == 'all_vaults' %}class="active" aria-current="page"{% endif %}>Все общие хранилища</a>
+<a href="{% url 'activity' %}" {% if nav_section == 'activity' %}class="active" aria-current="page"{% endif %}>Журнал действий</a>
+<a href="{% url 'trash' %}" {% if nav_section == 'trash' %}class="active" aria-current="page"{% endif %}>Корзина</a>
+<a href="{% url 'settings_page' %}" {% if nav_section == 'settings' %}class="active" aria-current="page"{% endif %}>Настройки</a>
+</div></details>
+{% elif can_manage_team %}<div class="nav-group"><p class="nav-caption">УПРАВЛЕНИЕ</p><a href="{% url 'team' %}" {% if nav_section == 'team' %}class="active" aria-current="page"{% endif %}>Команда</a></div>
+{% endif %}
+</nav>
+</aside>
+<div class="main" id="app-main">
+<header class="topbar">
+<button type="button" class="menu-button menu-toggle" aria-label="Открыть главное меню" aria-controls="main-sidebar" aria-expanded="false" data-nav-toggle><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+<span class="muted">Всё нужное для работы — в одном месте</span>
+{% include 'theme_control.html' %}
+<div class="profile">
+<span class="avatar">{{ user|stringformat:'s'|slice:':1' }}</span>
+<span>{{ user }}{% if user.is_superuser %}
+<small>Администратор</small>
+{% elif can_manage_team or user.is_manager %}
+<small>Руководитель</small>
+{% endif %}
+</span>
+<form action="{% url 'logout' %}" method="post">
+{% csrf_token %}
+<button class="text-button">Выйти</button>
+</form>
+</div>
+</header>
+<main class="content">
+{% block content %}{% endblock %}
+</main>
+</div>
+</div>
+<div id="notifications" class="toast-stack" role="region" aria-label="Уведомления">
+{% for message in messages %}<div class="toast{% if message.level >= 40 %} toast-error{% endif %}" data-toast data-toast-error="{% if message.level >= 40 %}true{% else %}false{% endif %}"><span class="toast-icon" aria-hidden="true">{% if message.level >= 40 %}!{% else %}✓{% endif %}</span><span class="toast-text" role="{% if message.level >= 40 %}alert{% else %}status{% endif %}">{{ message }}</span><button type="button" class="toast-close" data-toast-close aria-label="Закрыть уведомление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>{% endfor %}
+</div>
+</body>
+</html>

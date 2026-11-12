@@ -1,0 +1,5 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading"><div><span class="eyebrow">АДМИНИСТРИРОВАНИЕ</span><h1>Секреты сотрудников</h1><p class="muted">Найдите сотрудника по имени, почте или подразделению. Ваши собственные записи находятся в «Мои рабочие секреты».</p></div></div>
+<section class="panel"><form method="get" class="search"><input name="q" value="{{ query }}" placeholder="Имя, почта или подразделение" aria-label="Поиск сотрудника"><button class="button secondary">Найти</button></form>
+<div class="table-scroll"><table><thead><tr><th>Сотрудник</th><th>Подразделение</th><th>Секреты</th><th></th></tr></thead><tbody>{% for person in page_obj %}<tr><td><a class="employee-name" href="{% url 'staff_secrets' person.pk %}">{{ person }}</a><small class="muted">{{ person.email }}</small></td><td>{{ person.department|default:'Без подразделения' }}</td><td>{{ person.secret_count }}</td><td><a href="{% url 'staff_secrets' person.pk %}">Просмотреть</a></td></tr>{% empty %}<tr><td colspan="4" class="muted">Сотрудники не найдены.</td></tr>{% endfor %}</tbody></table></div>
+{% include 'pagination.html' %}</section>{% endblock %}

@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading"><div><span class="eyebrow">АДМИНИСТРИРОВАНИЕ</span><h1>Настройки</h1><p class="muted">Вход в систему и интеграции компании.</p></div></div>
+<div class="settings-grid settings-cards"><a class="panel settings-card" href="{% url 'microsoft_config' %}"><span class="eyebrow">РАБОЧИЕ УЧЁТНЫЕ ЗАПИСИ</span><h2>Microsoft 365</h2><p class="muted">Вход через Microsoft Entra ID.</p><span class="connection-status {% if entra_ready %}connected{% endif %}">{% if entra_ready %}Включено{% else %}Не включено{% endif %}</span></a><a class="panel settings-card" href="{% url 'ldap_config' %}"><span class="eyebrow">ДОМЕН КОМПАНИИ</span><h2>AD / LDAP</h2><p class="muted">Доменный логин и пароль.</p><span class="connection-status {% if ldap_ready %}connected{% endif %}">{% if ldap_ready %}Включено{% else %}Не включено{% endif %}</span></a></div>
+{% endblock %}

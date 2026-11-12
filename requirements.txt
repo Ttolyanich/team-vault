@@ -1,0 +1,10 @@
+Django==5.2.19
+gunicorn==27.0.0
+psycopg[binary]==3.3.8
+cryptography==50.0.2
+pyotp==2.10.0
+Authlib==1.9.5
+requests==2.34.2
+dj-database-url==3.1.2
+whitenoise==6.12.0
+ldap3==2.10.2rc4

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading">
+<div>
+<h1>Сотрудники и руководители</h1>
+<p class="muted">Сотрудники появляются после первого входа через Microsoft или AD. Полномочия назначает администратор.</p>
+</div>
+</div>
+{% for person in users %}
+<section class="panel user-card">
+<h2>{{ person }}</h2>
+<p class="muted">{{ person.email }}{% if person.is_local_admin %} · Резервная локальная учётная запись{% elif person.ad_object_guid %} · Active Directory{% elif person.entra_oid %} · Microsoft 365{% endif %}
+</p>
+{% if not person.is_local_admin %}
+<form method="post" class="stack">
+{% csrf_token %}
+<input name="user" value="{{ person.pk }}" type="hidden">
+<label>Руководитель сотрудника<select name="manager">
+<option value="">Не назначен</option>
+{% for manager in managers %}{% if manager.pk != person.pk %}
+<option value="{{ manager.pk }}" {% if person.manager_id == manager.pk %}selected{% endif %}>{{ manager }}</option>
+{% endif %}{% endfor %}
+</select>
+</label>
+<div class="checkbox-row">
+<label class="check">
+<input type="checkbox" name="is_active" {% if person.is_active %}checked{% endif %}> Вход разрешён</label>
+<label class="check">
+<input type="checkbox" name="is_manager" {% if person.is_manager %}checked{% endif %}> Можно назначать руководителем</label>
+<label class="check">
+<input type="checkbox" name="is_superuser" {% if person.is_superuser %}checked{% endif %}> Администратор</label>
+</div>
+<button class="button secondary">Сохранить полномочия</button>
+</form>
+{% endif %}
+</section>
+{% endfor %}{% endblock %}

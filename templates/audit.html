@@ -1,0 +1,40 @@
+{% extends 'base.html' %}{% load vault_tags %}{% block content %}
+<div class="page-heading">
+<div>
+<div class="heading-with-help"><h1>Журнал действий</h1>{% include 'help.html' with help_id='audit-help' help_label='О журнале действий' help_text='Кто и когда обращался к рабочим доступам. Значения секретов здесь не сохраняются. Показаны последние 200 событий. Запрос кода подтверждает его выдачу, а не вход во внешний сервис.' %}</div>
+</div>
+</div>
+<section class="panel">
+<form method="get" class="search">
+<label>Тип события<input name="action" value="{{ action }}" placeholder="Например: totp.requested">
+</label>
+<button class="button secondary">Применить</button>
+</form>
+<div class="table-scroll">
+<table>
+<thead>
+<tr>
+<th>Когда</th>
+<th>Кто</th>
+<th>Действие</th>
+<th>Объект</th>
+</tr>
+</thead>
+<tbody>
+{% for event in events %}
+<tr>
+<td>{{ event.created_at|date:'d.m.Y H:i:s' }}</td>
+<td>{{ event.actor_name }}</td>
+<td>{{ event.action|action_label }}</td>
+<td class="identifier">{{ event.target }}</td>
+</tr>
+{% empty %}
+<tr>
+<td colspan="4">Пока нет событий.</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endblock %}

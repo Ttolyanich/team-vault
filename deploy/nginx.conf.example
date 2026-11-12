@@ -1,0 +1,17 @@
+# Adjust the hostname, certificate paths and port before use.
+server {
+    listen 8443 ssl;
+    server_name 192.168.87.128;
+    ssl_certificate /etc/nginx/ssl/privatebin-test/server.crt;
+    ssl_certificate_key /etc/nginx/ssl/privatebin-test/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 1m;
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Connection "";
+        proxy_http_version 1.1;
+    }
+}

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{% url 'item' item.pk %}">← К записи</a>
+<div class="page-heading"><div><h1>{% if operation == 'move' %}Переместить запись{% else %}Копировать в общее хранилище{% endif %}</h1><p class="muted">{{ item.title }} · {{ item.vault.name }}</p></div></div>
+<section class="panel form-panel">
+{% if operation == 'move' %}<p class="muted">Запись, её история, TOTP и резервные коды перейдут в выбранное хранилище того же подразделения. Доступ будет определяться его правами.</p>{% else %}<p class="muted">Копируются логин, пароль, адрес, заметка и теги. Личная запись сохраняется. TOTP и резервные коды остаются в личном хранилище.</p>{% endif %}
+{% if has_targets %}<form method="post" class="stack" data-confirm="{% if operation == 'move' %}Переместить запись? Она станет доступна участникам выбранного хранилища.{% else %}Создать общую копию? Она станет доступна участникам выбранного хранилища.{% endif %}">{% csrf_token %}{{ form.non_field_errors }}{{ form.version }}{{ form.request_id }}<div class="form-field">{{ form.target.label_tag }}{{ form.target }}{{ form.target.errors }}</div><div class="form-actions"><button class="button primary">{% if operation == 'move' %}Переместить{% else %}Создать копию{% endif %}</button><a class="button secondary" href="{% url 'item' item.pk %}">Отмена</a></div></form>{% else %}<p>Нет подходящих хранилищ с правом записи.</p>{% endif %}
+</section>{% endblock %}

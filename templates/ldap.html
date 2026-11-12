@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">ИНТЕГРАЦИИ</span><h1>AD / LDAP</h1><p class="muted">Вход сотрудников по доменному логину и паролю. Доступ к хранилищам назначается отдельно.</p></div><span class="connection-status {% if ldap.ready %}connected{% endif %}">{% if ldap.ready %}Вход включён{% else %}Вход выключен{% endif %}</span></div>
+<div class="settings-layout">
+<section class="panel"><h2>Подключение к Active Directory</h2>
+<form method="post" class="stack">{% csrf_token %}{{ form.non_field_errors }}
+{% for field in form %}{% if field.is_hidden %}{{ field }}{% else %}
+<div class="form-field {% if field.field.widget.input_type == 'checkbox' %}checkbox-field{% endif %}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>
+{% endif %}{% endfor %}
+<p class="secret-status">{% if ldap.bind_secret_payload %}Пароль служебной учётной записи сохранён и скрыт.{% else %}Пароль служебной учётной записи пока не сохранён.{% endif %}</p>
+<div class="form-actions"><button class="button primary">Сохранить настройки</button></div></form></section>
+<aside>
+<section class="panel"><h2>Проверка подключения</h2><p class="muted">Проверяем сохранённые настройки. Можно проверить подключение перед включением входа.</p>
+<form method="post" action="{% url 'ldap_check' %}" data-integration-check>{% csrf_token %}<button class="button secondary">Проверить подключение</button></form>
+<p class="muted">Проверяются подключение, пароль служебной учётной записи, Base DN и доступность указанной группы. Для полной проверки выйдите из приложения в другом браузере или откройте приватное окно и выполните доменный вход.</p></section>
+<section class="panel"><h2>Как настроить</h2><ol class="setup-steps"><li>Укажите контроллер домена, способ подключения и соответствующий порт.</li><li>Задайте Base DN и служебную учётную запись с правом чтения каталога.</li><li>При необходимости ограничьте вход группой AD. Вложенные группы учитываются.</li><li>Для внутреннего CA вставьте его публичный сертификат в PEM.</li><li>Сохраните, проверьте подключение и включите вход.</li></ol></section>
+<section class="panel"><h2>Режимы подключения</h2><p class="muted"><strong>LDAPS / StartTLS:</strong> сертификат сервера проверяется по доверенному CA и имени. При ошибке соединение прекращается.</p><div class="notice error"><strong>Обычный LDAP:</strong> пароли служебной учётной записи и сотрудников передаются без шифрования. Локальная сеть и HTTPS на сайте не защищают участок до AD. Для этого режима нужен явный флажок разрешения.</div></section>
+<section class="panel"><h2>Пользователи и права</h2><p class="muted">Сотрудник появляется после первого успешного входа. Личные рабочие секреты создаются автоматически; общие хранилища и роли назначает администратор.</p><p class="muted">Учётная запись определяется по objectGUID AD. Пользователи M365 и AD с одинаковой почтой автоматически не объединяются. Блокировка в AD проверяется при следующем входе; немедленно закрыть доступ можно в разделе сотрудников приложения.</p></section>
+</aside></div>
+{% endblock %}

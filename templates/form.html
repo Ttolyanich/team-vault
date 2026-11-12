@@ -1,0 +1,24 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{% url 'home' %}">← К хранилищам</a>
+<div class="page-heading">
+<div>
+<h1>{{ heading }}</h1>
+<p class="muted">{{ subtitle }}</p>
+</div>
+</div>
+<section class="panel form-panel">
+<form method="post" class="stack">
+{% csrf_token %}{% if version %}
+<input type="hidden" name="version" value="{{ version }}">
+{% endif %}{{ form.non_field_errors }}{% for field in form %}
+<div class="form-field">{{ field.label_tag }}{{ field }}{% if field.help_text %}
+<small class="muted">{{ field.help_text }}</small>
+{% endif %}{{ field.errors }}</div>
+{% endfor %}
+<div class="form-actions">
+<button class="button primary">Сохранить</button>
+<a class="button secondary" href="{% url 'home' %}">Отмена</a>
+</div>
+</form>
+</section>
+{% endblock %}

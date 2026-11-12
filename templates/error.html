@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block content %}
+<section class="panel empty">
+<h1>{{ heading|default:'Действие недоступно' }}</h1>
+<p>{{ message|default:'Проверьте права или обратитесь к администратору.' }}</p>
+<a class="button primary" href="{% url 'home' %}">К хранилищам</a>
+</section>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{{ back_url|default:'/' }}">← К хранилищу</a>
+<div class="page-heading">
+<div>
+<span class="eyebrow">{{ item.vault.name }}</span>
+<h1>{{ item.title }}</h1>
+<p class="muted">{{ item.get_kind_display }} · Владелец: {{ item.owner }}</p>
+</div>
+{% if rights.edit %}
+<div class="heading-actions">
+<a class="button secondary" href="{% url 'item_edit' item.pk %}">Изменить запись</a>
+<form method="post" action="{% url 'item_delete' item.pk %}" data-confirm="Переместить этот секрет в корзину? Он исчезнет из хранилища. Восстановить его сможет администратор.">{% csrf_token %}<button class="button danger">Удалить</button></form>
+</div>
+{% endif %}
+</div>
+<div class="detail-grid">
+<section class="panel">
+<h2>Данные для входа</h2>
+{% csrf_token %}
+<div class="secret-row">
+<label for="value-login">Логин</label>
+<input id="value-login" value="{{ visible_values.login }}" placeholder="Не указан" readonly autocomplete="off">
+<button class="icon-button" aria-label="Копировать логин" title="Копировать логин" data-reveal="login" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="secret-row">
+<label for="value-password">Пароль или токен</label>
+<input id="value-password" value="••••••••••••" data-secret-value readonly autocomplete="off">
+<button class="button secondary" aria-controls="value-password" aria-pressed="false" data-reveal="password" data-url="{% url 'reveal' item.pk %}" data-output="value-password">Показать</button>
+<button class="icon-button" aria-label="Копировать пароль или токен" title="Копировать пароль или токен" data-reveal="password" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="secret-row">
+<label for="value-url">Адрес сервиса</label>
+<input id="value-url" value="{{ visible_values.url }}" placeholder="Не указан" readonly>
+<button class="icon-button" aria-label="Копировать адрес сервиса" title="Копировать адрес сервиса" data-reveal="url" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
+</div>
+<div class="note-field">
+<label for="value-note">Рабочая заметка</label>
+<textarea id="value-note" rows="3" readonly placeholder="Заметка не добавлена">{{ visible_values.note }}</textarea>
+</div>
+<div class="totp-block">
+<div>
+<h2>Код подтверждения</h2>
+<p class="muted">Каждый запрос фиксируется от вашего имени.</p>
+</div>
+{% if has_totp %}{% if rights.totp or leader %}
+<button class="button primary" id="totp-request" data-url="{% url 'totp_issue' item.pk %}">Получить код подтверждения</button>
+<div id="totp-result" hidden>
+<strong id="totp-code">
+</strong>
+<span id="totp-time" class="muted">
+</span>
+<button class="icon-button" id="totp-copy" aria-label="Копировать код подтверждения" title="Копировать код подтверждения">{% include 'copy_icon.html' %}</button>
+</div>
+{% else %}
+<p class="muted">Запрос кода вам не разрешён. Обратитесь к администратору.</p>
+{% endif %}{% else %}
+<p class="muted">Коды подтверждения пока не подключены.</p>
+{% endif %}
+</div>
+{% if can_move_item or can_copy_item %}<div class="record-actions">{% if can_move_item %}<a class="button secondary" href="{% url 'item_move' item.pk %}">Переместить</a>{% endif %}{% if can_copy_item %}<a class="button secondary" href="{% url 'item_copy' item.pk %}">Копировать в общее хранилище</a>{% endif %}</div>{% endif %}
+</section>
+<aside>
+<section class="panel">
+<div class="heading-with-help"><h2>Кто имеет доступ</h2>{% include 'help.html' with help_id='access-help' help_label='О доступе администраторов' help_text='Администраторы имеют доступ к обычным рабочим значениям.' %}</div>
+{% if item.vault.personal_owner_id %}
+<p>{{ item.vault.personal_owner }} — владелец пространства</p>
+{% if personal_manager %}
+<p>{{ personal_manager }} — руководитель</p>
+{% endif %}{% else %}{% for member in members %}
+<p>{{ member.user }}<small>{{ member.get_role_display }}{% if member.can_totp %} · запрос TOTP{% endif %}
+</small>
+</p>
+{% empty %}
+<p class="muted">Участники не назначены.</p>
+{% endfor %}{% endif %}
+{% if item.vault.department %}<p>{{ item.vault.department.name }}{% if item.vault.access_mode == 'department' %} — все сотрудники подразделения{% endif %}</p>{% if item.vault.department.head %}<p>{{ item.vault.department.head }} — руководитель подразделения</p>{% endif %}{% endif %}
+<hr>
+<div class="heading-with-help"><h3>Восстановление</h3>{% include 'help.html' with help_id='recovery-help' help_label='Кто видит резервные коды' help_text='Резервные коды доступны только назначенному ответственному руководителю.' %}</div>
+<p>
+{% if recovery_manager %}{{ recovery_manager }}{% else %}Руководитель не назначен{% endif %}
+</p>
+</section>
+<section class="panel">
+<h3>О записи</h3>
+<p class="muted">Версия {{ item.version }}<br>Изменена {{ item.updated_at|date:'d.m.Y H:i' }}</p>
+<p>{{ item.tags }}</p>
+</section>
+</aside>
+</div>
+{% if leader %}
+<details class="panel">
+<summary>Управление кодами — для ответственного руководителя</summary>
+<div class="settings-grid">
+<section>
+<h3>Подключить или заменить TOTP</h3>
+<p class="muted">Сначала настройте аутентификатор в самом сервисе. Загрузка QR будет добавлена отдельно.</p>
+<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" data-confirm="Заменить подключение кодов? Проверьте, что оно соответствует настройке в самом сервисе.">
+{% csrf_token %}{{ totp_form.as_p }}<button class="button secondary">Сохранить подключение</button>
+</form>
+</section>
+<section>
+<h3>Резервные коды</h3>
+{% for code in codes %}
+<div class="recovery-row">
+<span>Код {{ forloop.counter }}{% if code.used %} — использован{% endif %}
+</span>
+{% if not code.used %}
+<button class="text-button" aria-pressed="false" data-recovery="reveal" data-url="{% url 'recovery_action' item.pk code.pk %}">Показать</button>
+<button class="text-button" data-recovery="used" data-url="{% url 'recovery_action' item.pk code.pk %}">Отметить использованным</button>
+{% endif %}
+<output>
+</output>
+</div>
+{% empty %}
+<p class="muted">Набор ещё не добавлен.</p>
+{% endfor %}
+<form method="post" action="{% url 'recovery_replace' item.pk %}" class="stack" data-confirm="Заменить весь набор резервных кодов? Предыдущий набор будет удалён из приложения.">
+{% csrf_token %}{{ recovery_form.as_p }}<button class="button secondary">Заменить набор</button>
+</form>
+</section>
+</div>
+</details>
+{% endif %}{% endblock %}

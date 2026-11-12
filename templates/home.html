@@ -1,0 +1,61 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading">
+<div>
+<div class="heading-with-help"><h1>{{ heading }}</h1>
+{% if mode == 'personal' %}{% include 'help.html' with help_id='workspace-help' help_label='Кто видит мои рабочие секреты' help_text='Это рабочие данные компании. Доступ есть у владельца пространства, назначенного руководителя и администраторов. Резервные коды доступны только ответственному руководителю.' %}
+{% elif mode == 'staff' %}{% include 'help.html' with help_id='workspace-help' help_label='О просмотре секретов сотрудника' help_text='Это рабочие данные сотрудника. Доступ определяется вашими полномочиями; просмотр пространства и открытие записей фиксируются в журнале.' %}
+{% elif mode == 'all_shared' %}{% include 'help.html' with help_id='workspace-help' help_label='О всех общих хранилищах' help_text='Администраторский обзор общих хранилищ всех подразделений. Ваши рабочие хранилища находятся в основном разделе «Общие хранилища».' %}
+{% else %}{% include 'help.html' with help_id='workspace-help' help_label='Какие хранилища здесь показаны' help_text='Здесь показаны доступные хранилища вашего подразделения и доступы, выданные лично вам.' %}{% endif %}
+</div>
+</div>
+<div class="heading-actions">{% if can_create_vault %}<a class="button secondary" href="{% url 'vault_new' %}{% if selected.department_id %}?department={{ selected.department_id }}{% endif %}">＋ Создать хранилище</a>{% endif %}{% if can_add %}<a class="button primary" href="{% url 'item_new' %}{% if create_target %}?vault={{ create_target }}{% endif %}">＋ Добавить доступ</a>{% endif %}{% if selected_can_manage and not selected.personal_owner_id %}<form method="post" action="{% url 'vault_delete' selected.pk %}" data-confirm="Переместить хранилище со всем содержимым в корзину? Восстановление доступно администратору.">{% csrf_token %}<button class="button danger">Удалить хранилище</button></form>{% endif %}</div>
+</div>
+{% if mode == 'staff' %}<a class="back" href="{% if user.is_superuser %}{% url 'staff_directory' %}{% else %}{% url 'team' %}?person={{ target_person.pk }}{% endif %}">← К сотрудникам</a>{% endif %}
+{% if mode == 'shared' or mode == 'all_shared' %}<form method="get" class="workspace-filter"><input type="hidden" name="q" value="{{ query }}"><label for="workspace-vault">Хранилище</label><select name="vault" id="workspace-vault" data-search-select data-auto-submit data-source="{% url 'choices' %}?kind=vaults&amp;purpose={{ source_purpose }}"><option value="">{% if mode == 'all_shared' %}Все общие хранилища{% else %}Все мои хранилища{% endif %}</option>{% if selected %}<option value="{{ selected.pk }}" selected>{{ selected.name }}</option>{% endif %}</select><noscript><button class="button secondary">Открыть</button></noscript></form>{% endif %}
+<section class="panel">
+<div class="panel-toolbar">
+<form method="get" class="search">
+<input name="section" type="hidden" value="{{ section }}">
+{% if selected %}
+<input name="vault" type="hidden" value="{{ selected.pk }}">
+{% endif %}
+<input name="q" value="{{ query }}" placeholder="Поиск по названию или тегу" aria-label="Поиск">
+<button class="button secondary">Найти</button>
+</form>
+{% if selected_can_manage and not selected.personal_owner_id %}
+<a href="{% url 'members' selected.pk %}">Настроить доступ</a>
+{% endif %}
+<span class="muted">Записей: {{ total }}</span>
+</div>
+{% if items %}
+<div class="item-list">
+{% for item in items %}
+<a class="item-row" href="{% url 'item' item.pk %}">
+<span class="service-icon">{{ item.title|slice:':1' }}</span>
+<span class="item-main">
+<strong>{{ item.title }}</strong>
+<small>{{ item.vault.name }}{% if item.tags %} · {{ item.tags }}{% endif %}
+</small>
+</span>
+<span class="badge">{{ item.get_kind_display }}</span>
+<span class="row-owner">{{ item.owner }}</span>
+<span aria-hidden="true">→</span>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">
+<span class="empty-icon">＋</span>
+<h2>
+{% if query %}Ничего не нашлось{% else %}Здесь будут рабочие доступы{% endif %}
+</h2>
+<p>
+{% if query %}Попробуйте другое название или тег.{% elif mode == 'staff' %}У сотрудника пока нет записей.{% elif selected and can_add %}Добавьте первый рабочий доступ в это хранилище.{% elif selected %}В этом хранилище пока нет записей.{% else %}Выберите хранилище или дождитесь назначения доступа.{% endif %}
+</p>
+{% if can_add and not query %}
+<a class="button primary" href="{% url 'item_new' %}{% if create_target %}?vault={{ create_target }}{% endif %}">＋ Добавить доступ</a>
+{% endif %}
+</div>
+{% endif %}
+</section>
+{% include 'pagination.html' %}{% endblock %}
