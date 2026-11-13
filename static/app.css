@@ -590,6 +590,24 @@ details>summary{
   font-size:14px;
   font-weight:600
 }
+.totp-setup-toggle summary::-webkit-details-marker {
+  display: none;
+}
+.totp-setup-toggle summary {
+  list-style: none;
+}
+.totp-setup-toggle summary .totp-open-text {
+  display: none;
+}
+.totp-setup-toggle summary .totp-closed-text {
+  display: inline;
+}
+.totp-setup-toggle[open] summary .totp-open-text {
+  display: inline;
+}
+.totp-setup-toggle[open] summary .totp-closed-text {
+  display: none;
+}
 details .stack{
   margin-top:20px
 }

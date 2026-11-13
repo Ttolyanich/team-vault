@@ -212,6 +212,46 @@ class VaultSecurityTests(TestCase):
         self.assertTrue(TotpConfig.objects.filter(item=new_item).exists())
         self.assertEqual(self.client.post(reverse("totp_setup", args=[new_item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 403)
 
+    def test_create_item_with_totp_key(self):
+        self.as_user(self.admin)
+        data = {
+            "title": "TOTP Запись",
+            "vault": str(self.vault.pk),
+            "login": "totp-user",
+            "password": "Password123!",
+            "totp_key": self.seed,
+            "url": "https://example.com",
+            "note": "",
+            "tags": "test",
+        }
+        res = self.client.post(reverse("item_new"), data)
+        self.assertEqual(res.status_code, 302)
+        item = Item.objects.get(title="TOTP Запись")
+        self.assertTrue(TotpConfig.objects.filter(item=item).exists())
+        config = TotpConfig.objects.get(item=item)
+        self.assertEqual(config.revision, 1)
+
+        issue_res = self.client.post(reverse("totp_issue", args=[item.pk]), {"request_id": str(uuid.uuid4())})
+        self.assertEqual(issue_res.status_code, 200)
+        self.assertIn("code", issue_res.json())
+
+    def test_create_item_with_invalid_totp_key_fails(self):
+        self.as_user(self.admin)
+        data = {
+            "title": "Invalid TOTP",
+            "vault": str(self.vault.pk),
+            "login": "totp-user",
+            "password": "Password123!",
+            "totp_key": "INVALID_TOTP_SEED",
+            "url": "https://example.com",
+            "note": "",
+            "tags": "test",
+        }
+        res = self.client.post(reverse("item_new"), data)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Не удалось прочитать настройку")
+        self.assertFalse(Item.objects.filter(title="Invalid TOTP").exists())
+
     def test_personal_manager_scope(self):
         self.member.manager = self.leader
         self.member.save()

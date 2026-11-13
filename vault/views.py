@@ -168,7 +168,7 @@ def vault_members(request, vault_id):
 
 
 @login_required
-@sensitive_post_parameters("password", "note", "login")
+@sensitive_post_parameters("password", "note", "login", "totp_key")
 def item_edit(request, item_id=None):
     item = item_for(request, item_id, "edit") if item_id else None
     initial = {"vault": request.GET.get("vault")}
@@ -177,7 +177,11 @@ def item_edit(request, item_id=None):
         initial.update(crypto.unseal(item.versions.get(number=item.version).payload, f"item:{item.pk}:{item.version}"))
         initial.pop("password", None)
         audit(request, "item.edit_opened", item.pk, item.vault)
-    form = ItemForm(request.POST or None, initial=initial, user=request.user)
+    has_totp = TotpConfig.objects.filter(item=item).exists() if item else False
+    can_add_totp = can_setup_totp(request.user, item) if item else True
+    can_manage_totp = totp_admin_access(request.user, item) if item else False
+    show_totp = (not has_totp) and can_add_totp
+    form = ItemForm(request.POST or None, initial=initial, user=request.user, show_totp=show_totp)
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         if item and item.vault_id != data["vault"].pk:
@@ -203,11 +207,16 @@ def item_edit(request, item_id=None):
                 if not payload["password"] and previous:
                     payload["password"] = previous.get("password", "")
                 ItemVersion.objects.create(item=item, number=item.version, payload=crypto.seal(payload, f"item:{item.pk}:{item.version}"), author=request.user)
+                totp_config = data.get("totp_key")
+                if totp_config and not TotpConfig.objects.filter(item=item).exists():
+                    TotpConfig.objects.create(
+                        item=item,
+                        payload=crypto.seal(totp_config, f"totp:{item.pk}:1"),
+                        revision=1,
+                    )
+                    audit(request, "totp.configured", item.pk, item.vault, revision=1)
                 audit(request, "item.saved", item.pk, item.vault, version=item.version)
             return redirect("item", item_id=item.pk)
-    has_totp = TotpConfig.objects.filter(item=item).exists() if item else False
-    can_add_totp = can_setup_totp(request.user, item) if item else False
-    can_manage_totp = totp_admin_access(request.user, item) if item else False
     return render(request, "item_form.html", {
         "form": form,
         "item": item,

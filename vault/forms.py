@@ -9,15 +9,31 @@ class ItemForm(forms.Form):
     vault = forms.ModelChoiceField(label="Хранилище", queryset=Vault.objects.none())
     login = forms.CharField(label="Логин", max_length=500, required=False)
     password = forms.CharField(label="Пароль или токен", max_length=10000, required=False, widget=forms.PasswordInput(render_value=False))
+    totp_key = forms.CharField(
+        label="Секретный ключ аутентификатора (TOTP)",
+        max_length=2048,
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"placeholder": "Секретный ключ или ссылка otpauth://", "autocomplete": "off"}),
+        help_text="Если для входа требуется двухфакторная аутентификация (2FA), укажите секрет или ссылку otpauth://."
+    )
     url = forms.URLField(label="Адрес сервиса", required=False)
     note = forms.CharField(label="Рабочая заметка", max_length=20000, required=False, widget=forms.Textarea(attrs={"rows": 4}))
     tags = forms.CharField(label="Теги", max_length=250, required=False, help_text="Например: контент, площадки. Не указывайте здесь пароли.")
 
-    def __init__(self, *args, user, **kwargs):
+    def __init__(self, *args, user, show_totp=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["vault"].queryset = editable_vaults(user)
         included = self.initial.get("vault")
         search_field(self.fields["vault"], "vaults", "editable", extra={"include": included} if included else {})
+        if not show_totp:
+            self.fields.pop("totp_key", None)
+
+    def clean_totp_key(self):
+        val = self.cleaned_data.get("totp_key", "").strip()
+        if not val:
+            return None
+        from .services import totp_data
+        return totp_data(val)
 
 
 class VaultForm(forms.Form):

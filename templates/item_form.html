@@ -11,9 +11,24 @@
 {% csrf_token %}{% if version %}
 <input type="hidden" name="version" value="{{ version }}">
 {% endif %}{{ form.non_field_errors }}{% for field in form %}
+{% if field.name == 'totp_key' %}
+<details class="totp-setup-toggle"{% if field.value or field.errors %} open{% endif %} style="margin: 4px 0 16px 0;">
+  <summary class="button secondary" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+    <span class="totp-closed-text">＋ Добавить TOTP</span>
+    <span class="totp-open-text">✕ Скрыть настройку TOTP</span>
+  </summary>
+  <div class="form-field" style="margin-top:14px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:8px;">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+    {{ field.errors }}
+  </div>
+</details>
+{% else %}
 <div class="form-field">{{ field.label_tag }}{{ field }}{% if field.help_text %}
 <small class="muted">{{ field.help_text }}</small>
 {% endif %}{{ field.errors }}</div>
+{% endif %}
 {% endfor %}
 <div class="form-actions">
 <button class="button primary">Сохранить</button>
@@ -22,18 +37,7 @@
 </form>
 </section>
 
-{% if item %}
-{% if can_add_totp and not has_totp %}
-<section class="panel form-panel" style="margin-top:20px;">
-<h3>Подключить коды подтверждения (TOTP)</h3>
-<p class="muted">Вы можете подключить генерацию одноразовых кодов для этой записи.</p>
-<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">
-{% csrf_token %}
-{{ totp_form.as_p }}
-<button class="button secondary" style="align-self:flex-start;">Подключить TOTP</button>
-</form>
-</section>
-{% elif has_totp %}
+{% if item and has_totp %}
 <section class="panel form-panel" style="margin-top:20px;">
 <h3>Коды подтверждения (TOTP)</h3>
 <p class="muted" style="color:var(--accent,#2ebd85); font-weight:500;">✓ Одноразовые коды (TOTP) подключены и активны для этой записи.</p>
