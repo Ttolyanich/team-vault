@@ -40,7 +40,7 @@
 {% if visible_values.note %}
 <div class="note-field">
 <label for="value-note">Рабочая заметка</label>
-<textarea id="value-note" rows="3" readonly>{{ visible_values.note }}</textarea>
+<textarea id="value-note" rows="3" readonly placeholder="Заметка не добавлена">{{ visible_values.note }}</textarea>
 </div>
 {% endif %}
 {% if has_totp %}
