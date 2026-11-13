@@ -30,18 +30,62 @@ const prepareToast = toast => {
   toast.addEventListener("focusout", () => setTimeout(() => startToast(toast), 0));
   startToast(toast);
 };
+const flashButton = button => {
+  if (!button) return;
+  button.classList.remove("button-copied");
+  void button.offsetWidth;
+  button.classList.add("button-copied");
+  setTimeout(() => button.classList.remove("button-copied"), 1000);
+};
 const notify = (text, error = false) => {
   const root = document.getElementById("notifications");
   if (!root) return;
-  const repeated = Array.from(root.children).find(toast => toast.dataset.toastError === String(error) && toast.querySelector(".toast-text")?.textContent === text);
-  if (repeated) { startToast(repeated); toastHost(); return; }
-  const toast = document.createElement("div"); toast.className = `toast${error ? " toast-error" : ""}`; toast.dataset.toastError = String(error);
-  const icon = document.createElement("span"); icon.className = "toast-icon"; icon.setAttribute("aria-hidden", "true"); icon.textContent = error ? "!" : "✓";
-  const message = document.createElement("span"); message.className = "toast-text"; message.setAttribute("role", error ? "alert" : "status"); message.textContent = text;
-  const close = document.createElement("button"); close.type = "button"; close.className = "toast-close"; close.dataset.toastClose = ""; close.setAttribute("aria-label", "Закрыть уведомление");
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("fill", "none"); svg.setAttribute("stroke", "currentColor"); svg.setAttribute("stroke-width", "1.8"); svg.setAttribute("stroke-linecap", "round");
-  const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", "m6 6 12 12M18 6 6 18"); svg.append(path); close.append(svg);
-  toast.append(icon, message, close); root.append(toast); prepareToast(toast); toastHost();
+  const repeated = Array.from(root.children).find(toast => toast.dataset.toastError === String(error) && (toast.dataset.originalText || toast.querySelector(".toast-text")?.textContent) === text);
+  if (repeated) {
+    const count = parseInt(repeated.dataset.count || "1", 10) + 1;
+    repeated.dataset.count = String(count);
+    const msg = repeated.querySelector(".toast-text");
+    if (msg) msg.textContent = `${text} (${count})`;
+    repeated.classList.remove("toast-pulse");
+    void repeated.offsetWidth;
+    repeated.classList.add("toast-pulse");
+    startToast(repeated);
+    toastHost();
+    return;
+  }
+  const toast = document.createElement("div");
+  toast.className = `toast${error ? " toast-error" : ""}`;
+  toast.dataset.toastError = String(error);
+  toast.dataset.originalText = text;
+  toast.dataset.count = "1";
+  const icon = document.createElement("span");
+  icon.className = "toast-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = error ? "!" : "✓";
+  const message = document.createElement("span");
+  message.className = "toast-text";
+  message.setAttribute("role", error ? "alert" : "status");
+  message.textContent = text;
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "toast-close";
+  close.dataset.toastClose = "";
+  close.setAttribute("aria-label", "Закрыть уведомление");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  const path = document.createElementNS(svg.namespaceURI, "path");
+  path.setAttribute("d", "m6 6 12 12M18 6 6 18");
+  svg.append(path);
+  close.append(svg);
+  toast.append(icon, message, close);
+  root.append(toast);
+  prepareToast(toast);
+  toastHost();
 };
 async function post(url, values) {
   const csrf = document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
@@ -50,7 +94,7 @@ async function post(url, values) {
   if (!response.ok) throw new Error(body.error || "Не удалось выполнить действие. Проверьте доступ или повторите позже.");
   return body;
 }
-async function copy(value) {
+async function copy(value, button = null) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(value);
@@ -65,6 +109,7 @@ async function copy(value) {
       textarea.remove();
     }
     notify("Скопировано в буфер обмена.");
+    if (button) flashButton(button);
   } catch (err) {
     notify("Не удалось скопировать в буфер обмена.", true);
   }
@@ -82,7 +127,7 @@ document.querySelectorAll("[data-reveal]").forEach(button => button.addEventList
       document.getElementById(button.dataset.output).value = result.value;
       button.textContent = "Скрыть"; button.setAttribute("aria-pressed", "true");
     }
-    if (button.dataset.copy) await copy(result.value);
+    if (button.dataset.copy) await copy(result.value, button);
   } catch (error) { notify(error.message, true); }
   finally { button.disabled = false; }
 }));
@@ -103,7 +148,7 @@ document.getElementById("totp-request")?.addEventListener("click", async event =
   } catch (error) { notify(error.message, true); }
   finally { button.disabled = false; }
 });
-document.getElementById("totp-copy")?.addEventListener("click", async () => { try { if (activeCode) await copy(activeCode); } catch { notify("Не удалось скопировать код. Выделите его вручную.", true); } });
+document.getElementById("totp-copy")?.addEventListener("click", async event => { try { if (activeCode) await copy(activeCode, event.currentTarget); } catch { notify("Не удалось скопировать код. Выделите его вручную.", true); } });
 document.querySelectorAll("[data-recovery]").forEach(button => button.addEventListener("click", async () => {
   if (button.dataset.recovery === "reveal" && button.getAttribute("aria-pressed") === "true") {
     button.closest(".recovery-row").querySelector("output").textContent = "";
@@ -117,7 +162,7 @@ document.querySelectorAll("[data-recovery]").forEach(button => button.addEventLi
 }));
 window.addEventListener("pagehide", () => { clearTotp(); document.querySelectorAll("[data-secret-value]").forEach(field => { field.value = "••••••••••••"; }); document.querySelectorAll("[data-reveal][data-output], [data-recovery=reveal]").forEach(button => { button.textContent = "Показать"; button.setAttribute("aria-pressed", "false"); }); document.querySelectorAll(".recovery-row output").forEach(field => { field.textContent = ""; }); });
 document.querySelectorAll("[data-copy-value]").forEach(button => button.addEventListener("click", async () => {
-  try { await copy(button.dataset.copyValue); } catch { notify("Не удалось скопировать адрес. Выделите его вручную.", true); }
+  try { await copy(button.dataset.copyValue, button); } catch { notify("Не удалось скопировать адрес. Выделите его вручную.", true); }
 }));
 document.getElementById("microsoft-check")?.addEventListener("click", async event => {
   const button = event.currentTarget;
