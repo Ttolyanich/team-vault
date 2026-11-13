@@ -6,7 +6,6 @@ from .widgets import search_field
 
 class ItemForm(forms.Form):
     title = forms.CharField(label="Название", max_length=200)
-    kind = forms.ChoiceField(label="Тип записи", choices=Item._meta.get_field("kind").choices)
     vault = forms.ModelChoiceField(label="Хранилище", queryset=Vault.objects.none())
     login = forms.CharField(label="Логин", max_length=500, required=False)
     password = forms.CharField(label="Пароль или токен", max_length=10000, required=False, widget=forms.PasswordInput(render_value=False))

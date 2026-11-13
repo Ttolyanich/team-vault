@@ -171,9 +171,9 @@ def vault_members(request, vault_id):
 @sensitive_post_parameters("password", "note", "login")
 def item_edit(request, item_id=None):
     item = item_for(request, item_id, "edit") if item_id else None
-    initial = {"kind": "account", "vault": request.GET.get("vault")}
+    initial = {"vault": request.GET.get("vault")}
     if item:
-        initial.update({"title": item.title, "kind": item.kind, "vault": item.vault_id, "tags": item.tags})
+        initial.update({"title": item.title, "vault": item.vault_id, "tags": item.tags})
         initial.update(crypto.unseal(item.versions.get(number=item.version).payload, f"item:{item.pk}:{item.version}"))
         initial.pop("password", None)
         audit(request, "item.edit_opened", item.pk, item.vault)
@@ -195,9 +195,9 @@ def item_edit(request, item_id=None):
                     if not permissions(request.user, target)["edit"]:
                         raise PermissionDenied
                     data["vault"] = target
-                    item = Item(owner=request.user)
+                    item = Item(owner=request.user, kind="account")
                     previous = {}
-                item.title, item.kind, item.tags, item.vault = data["title"], data["kind"], data["tags"], data["vault"]
+                item.title, item.tags, item.vault = data["title"], data["tags"], data["vault"]
                 item.save()
                 payload = {name: data[name] for name in ("login", "password", "url", "note")}
                 if not payload["password"] and previous:
