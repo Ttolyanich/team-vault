@@ -55,6 +55,16 @@
 <p class="muted">Запрос кода вам не разрешён. Обратитесь к администратору.</p>
 {% endif %}{% else %}
 <p class="muted">Коды подтверждения пока не подключены.</p>
+{% if leader %}
+<details class="totp-setup-quick" style="margin-top:12px;">
+<summary class="button secondary">＋ Подключить TOTP</summary>
+<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">
+{% csrf_token %}
+{{ totp_form.as_p }}
+<button class="button primary" style="align-self:flex-start;">Сохранить подключение</button>
+</form>
+</details>
+{% endif %}
 {% endif %}
 </div>
 {% if can_move_item or can_copy_item %}<div class="record-actions">{% if can_move_item %}<a class="button secondary" href="{% url 'item_move' item.pk %}">Переместить</a>{% endif %}{% if can_copy_item %}<a class="button secondary" href="{% url 'item_copy' item.pk %}">Копировать в общее хранилище</a>{% endif %}</div>{% endif %}

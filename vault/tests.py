@@ -197,6 +197,14 @@ class VaultSecurityTests(TestCase):
         self.assertEqual(self.client.post(reverse("totp_setup", args=[self.item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 403)
         self.assertEqual(self.client.post(reverse("recovery_replace", args=[self.item.pk]), {"codes": "test"}).status_code, 403)
 
+    def test_admin_and_personal_owner_can_configure_totp(self):
+        self.as_user(self.admin)
+        self.assertEqual(self.client.post(reverse("totp_setup", args=[self.item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 302)
+        personal_vault = Vault.objects.create(name="Личное рабочее", personal_owner=self.member)
+        personal_item = Item.objects.create(vault=personal_vault, title="Личная запись", owner=self.member)
+        self.as_user(self.member)
+        self.assertEqual(self.client.post(reverse("totp_setup", args=[personal_item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 302)
+
     def test_personal_manager_scope(self):
         self.member.manager = self.leader
         self.member.save()

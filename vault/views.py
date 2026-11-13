@@ -215,7 +215,7 @@ def item_detail(request, item_id):
     with transaction.atomic():
         item = locked_item_for(request, item.pk)
         recovery_manager = recovery_manager_for(item)
-        leader = bool(recovery_manager and recovery_manager.pk == request.user.pk)
+        leader = recovery_access(request.user, item)
         payload = crypto.unseal(item.versions.get(number=item.version).payload, f"item:{item.pk}:{item.version}")
         visible_values = {field: payload.get(field, "") for field in ("login", "url", "note")}
         audit(request, "item.opened", item.pk, item.vault, fields=list(visible_values), version=item.version)
