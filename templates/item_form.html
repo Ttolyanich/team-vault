@@ -1,0 +1,68 @@
+{% extends 'base.html' %}{% block content %}
+<a class="back" href="{% if item %}{% url 'item' item.pk %}{% else %}{% url 'home' %}{% endif %}">← Назад</a>
+<div class="page-heading">
+<div>
+<h1>{{ heading }}</h1>
+<p class="muted">{{ subtitle }}</p>
+</div>
+</div>
+<section class="panel form-panel">
+<form method="post" class="stack">
+{% csrf_token %}{% if version %}
+<input type="hidden" name="version" value="{{ version }}">
+{% endif %}{{ form.non_field_errors }}{% for field in form %}
+<div class="form-field">{{ field.label_tag }}{{ field }}{% if field.help_text %}
+<small class="muted">{{ field.help_text }}</small>
+{% endif %}{{ field.errors }}</div>
+{% endfor %}
+<div class="form-actions">
+<button class="button primary">Сохранить</button>
+<a class="button secondary" href="{% if item %}{% url 'item' item.pk %}{% else %}{% url 'home' %}{% endif %}">Отмена</a>
+</div>
+</form>
+</section>
+
+{% if item %}
+{% if can_add_totp and not has_totp %}
+<section class="panel form-panel" style="margin-top:20px;">
+<h3>Подключить коды подтверждения (TOTP)</h3>
+<p class="muted">Вы можете подключить генерацию одноразовых кодов для этой записи.</p>
+<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">
+{% csrf_token %}
+{{ totp_form.as_p }}
+<button class="button secondary" style="align-self:flex-start;">Подключить TOTP</button>
+</form>
+</section>
+{% elif has_totp %}
+<section class="panel form-panel" style="margin-top:20px;">
+<h3>Коды подтверждения (TOTP)</h3>
+<p class="muted" style="color:var(--accent,#2ebd85); font-weight:500;">✓ Одноразовые коды (TOTP) подключены и активны для этой записи.</p>
+{% if can_manage_totp %}
+<details style="margin-top:12px;">
+<summary class="button secondary">Заменить подключение TOTP</summary>
+<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:12px;" data-confirm="Заменить подключение кодов? Проверьте, что оно соответствует настройке в сервисе.">
+{% csrf_token %}
+{{ totp_form.as_p }}
+<button class="button secondary" style="align-self:flex-start;">Сохранить новое подключение</button>
+</form>
+</details>
+{% endif %}
+</section>
+{% endif %}
+
+{% if can_move_item or can_copy_item %}
+<section class="panel form-panel" style="margin-top:20px;">
+<h3>Управление размещением</h3>
+<p class="muted">Перенос или дублирование записи между хранилищами.</p>
+<div class="heading-actions" style="margin-top:14px; gap:12px;">
+{% if can_move_item %}
+<a class="button secondary" href="{% url 'item_move' item.pk %}">Переместить запись</a>
+{% endif %}
+{% if can_copy_item %}
+<a class="button secondary" href="{% url 'item_copy' item.pk %}">Копировать в общее хранилище</a>
+{% endif %}
+</div>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

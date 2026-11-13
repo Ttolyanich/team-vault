@@ -17,32 +17,39 @@
 <section class="panel">
 <h2>Данные для входа</h2>
 {% csrf_token %}
+{% if visible_values.login %}
 <div class="secret-row">
 <label for="value-login">Логин</label>
-<input id="value-login" value="{{ visible_values.login }}" placeholder="Не указан" readonly autocomplete="off">
+<input id="value-login" value="{{ visible_values.login }}" readonly autocomplete="off">
 <button class="icon-button" aria-label="Копировать логин" title="Копировать логин" data-reveal="login" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
 </div>
+{% endif %}
 <div class="secret-row">
 <label for="value-password">Пароль или токен</label>
 <input id="value-password" value="••••••••••••" data-secret-value readonly autocomplete="off">
 <button class="button secondary" aria-controls="value-password" aria-pressed="false" data-reveal="password" data-url="{% url 'reveal' item.pk %}" data-output="value-password">Показать</button>
 <button class="icon-button" aria-label="Копировать пароль или токен" title="Копировать пароль или токен" data-reveal="password" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
 </div>
+{% if visible_values.url %}
 <div class="secret-row">
 <label for="value-url">Адрес сервиса</label>
-<input id="value-url" value="{{ visible_values.url }}" placeholder="Не указан" readonly>
+<input id="value-url" value="{{ visible_values.url }}" readonly>
 <button class="icon-button" aria-label="Копировать адрес сервиса" title="Копировать адрес сервиса" data-reveal="url" data-url="{% url 'reveal' item.pk %}" data-copy="1">{% include 'copy_icon.html' %}</button>
 </div>
+{% endif %}
+{% if visible_values.note %}
 <div class="note-field">
 <label for="value-note">Рабочая заметка</label>
-<textarea id="value-note" rows="3" readonly placeholder="Заметка не добавлена">{{ visible_values.note }}</textarea>
+<textarea id="value-note" rows="3" readonly>{{ visible_values.note }}</textarea>
 </div>
+{% endif %}
+{% if has_totp %}
 <div class="totp-block">
 <div>
 <h2>Код подтверждения</h2>
 <p class="muted">Каждый запрос фиксируется от вашего имени.</p>
 </div>
-{% if has_totp %}{% if rights.totp or leader %}
+{% if rights.totp or can_manage_totp %}
 <button class="button primary" id="totp-request" data-url="{% url 'totp_issue' item.pk %}">Получить код подтверждения</button>
 <div id="totp-result" hidden>
 <strong id="totp-code">
@@ -53,21 +60,9 @@
 </div>
 {% else %}
 <p class="muted">Запрос кода вам не разрешён. Обратитесь к администратору.</p>
-{% endif %}{% else %}
-<p class="muted">Коды подтверждения пока не подключены.</p>
-{% if can_add_totp %}
-<details class="totp-setup-quick" style="margin-top:12px;">
-<summary class="button secondary">＋ Подключить TOTP</summary>
-<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">
-{% csrf_token %}
-{{ totp_form.as_p }}
-<button class="button primary" style="align-self:flex-start;">Сохранить подключение</button>
-</form>
-</details>
-{% endif %}
 {% endif %}
 </div>
-{% if can_move_item or can_copy_item %}<div class="record-actions">{% if can_move_item %}<a class="button secondary" href="{% url 'item_move' item.pk %}">Переместить</a>{% endif %}{% if can_copy_item %}<a class="button secondary" href="{% url 'item_copy' item.pk %}">Копировать в общее хранилище</a>{% endif %}</div>{% endif %}
+{% endif %}
 </section>
 <aside>
 <section class="panel">
@@ -133,9 +128,9 @@
 </section>
 </aside>
 </div>
-{% if leader or can_manage_totp %}
+{% if leader %}
 <details class="panel">
-<summary>{% if leader %}Управление кодами — для ответственного руководителя{% else %}Управление кодами подтверждения (TOTP){% endif %}</summary>
+<summary>Управление кодами — для ответственного руководителя</summary>
 <div class="settings-grid">
 <section>
 <h3>Подключить или заменить TOTP</h3>

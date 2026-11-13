@@ -205,7 +205,22 @@ def item_edit(request, item_id=None):
                 ItemVersion.objects.create(item=item, number=item.version, payload=crypto.seal(payload, f"item:{item.pk}:{item.version}"), author=request.user)
                 audit(request, "item.saved", item.pk, item.vault, version=item.version)
             return redirect("item", item_id=item.pk)
-    return render(request, "form.html", {"form": form, "heading": "Изменить запись" if item else "Добавить рабочий доступ", "subtitle": "Пароль, токен и заметка сохраняются зашифрованными. Пустой пароль при изменении сохраняет прежний.", "version": item.version if item else None})
+    has_totp = TotpConfig.objects.filter(item=item).exists() if item else False
+    can_add_totp = can_setup_totp(request.user, item) if item else False
+    can_manage_totp = totp_admin_access(request.user, item) if item else False
+    return render(request, "item_form.html", {
+        "form": form,
+        "item": item,
+        "heading": "Изменить запись" if item else "Добавить рабочий доступ",
+        "subtitle": "Пароль, токен и заметка сохраняются зашифрованными. Пустой пароль при изменении сохраняет прежний.",
+        "version": item.version if item else None,
+        "can_move_item": can_move_item(request.user, item) if item else False,
+        "can_copy_item": can_copy_item(request.user, item) if item else False,
+        "has_totp": has_totp,
+        "can_add_totp": can_add_totp,
+        "can_manage_totp": can_manage_totp,
+        "totp_form": TotpForm(),
+    })
 
 
 @login_required
