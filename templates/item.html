@@ -55,7 +55,7 @@
 <p class="muted">Запрос кода вам не разрешён. Обратитесь к администратору.</p>
 {% endif %}{% else %}
 <p class="muted">Коды подтверждения пока не подключены.</p>
-{% if leader %}
+{% if can_manage_totp %}
 <details class="totp-setup-quick" style="margin-top:12px;">
 <summary class="button secondary">＋ Подключить TOTP</summary>
 <form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">
@@ -133,9 +133,9 @@
 </section>
 </aside>
 </div>
-{% if leader %}
+{% if leader or can_manage_totp %}
 <details class="panel">
-<summary>Управление кодами — для ответственного руководителя</summary>
+<summary>{% if leader %}Управление кодами — для ответственного руководителя{% else %}Управление кодами подтверждения (TOTP){% endif %}</summary>
 <div class="settings-grid">
 <section>
 <h3>Подключить или заменить TOTP</h3>
@@ -144,6 +144,7 @@
 {% csrf_token %}{{ totp_form.as_p }}<button class="button secondary">Сохранить подключение</button>
 </form>
 </section>
+{% if leader %}
 <section>
 <h3>Резервные коды</h3>
 {% for code in codes %}
@@ -164,6 +165,7 @@
 {% csrf_token %}{{ recovery_form.as_p }}<button class="button secondary">Заменить набор</button>
 </form>
 </section>
+{% endif %}
 </div>
 </details>
 {% endif %}{% endblock %}

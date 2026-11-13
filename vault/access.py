@@ -73,11 +73,17 @@ def recovery_manager_for(item):
 
 
 def recovery_access(user, item):
+    manager = recovery_manager_for(item)
+    return bool(user.is_active and manager and manager.pk == user.pk)
+
+
+def totp_access(user, item):
     if not user.is_active:
         return False
-    if user.is_superuser:
+    if recovery_access(user, item):
         return True
     if item.vault.personal_owner_id and item.vault.personal_owner_id == user.pk:
         return True
-    manager = recovery_manager_for(item)
-    return bool(manager and manager.pk == user.pk)
+    if user.is_superuser:
+        return True
+    return False
