@@ -413,7 +413,8 @@ small{
   background:#fff2f2;
   border-color:#f0cccc
 }
-.toast-stack{position:fixed;inset:auto 20px 20px auto;margin:0;padding:0;border:0;background:transparent;color:var(--ink);width:min(390px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow-y:auto;display:flex;flex-direction:column;gap:10px;pointer-events:none;z-index:200;overscroll-behavior:contain}
+.toast-stack{position:fixed;inset:auto 12px 12px auto;margin:0;padding:8px;border:0;background:transparent;color:var(--ink);width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:visible;display:flex;flex-direction:column;gap:10px;pointer-events:none;z-index:200;scrollbar-width:none;-ms-overflow-style:none}
+.toast-stack::-webkit-scrollbar{display:none}
 .toast-stack:empty{display:none}
 .toast{display:flex;align-items:center;gap:12px;padding:12px 8px 12px 16px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;background:var(--surface);box-shadow:0 6px 24px #0003;pointer-events:auto;animation:toast-in .18s ease-out}
 .toast-icon{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--pale);color:var(--accent);font-size:13px;font-weight:700}
@@ -425,10 +426,10 @@ small{
 .toast-error{border-left-color:#c65353}.toast-error .toast-icon{background:#fff0f0;color:#a74343}
 [data-theme="dark"] .toast-error{border-left-color:#ef9999}[data-theme="dark"] .toast-error .toast-icon{background:#432b30;color:#ffb1b1}
 @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes toast-pulse{0%{transform:scale(1)}40%{transform:scale(1.05);box-shadow:0 8px 30px #0005}100%{transform:scale(1)}}
+@keyframes toast-pulse{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-2px) scale(1.02);box-shadow:0 8px 30px #0005}100%{transform:translateY(0) scale(1)}}
 .toast.toast-pulse{animation:toast-pulse .22s ease-out!important}
 .button-copied{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--pale)!important;transform:scale(.92);transition:transform .12s ease,background .15s ease,border-color .15s ease}
-@media(max-width:750px){.toast-stack{right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 32px)}}
+@media(max-width:750px){.toast-stack{right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 24px)}}
 @media(prefers-reduced-motion:reduce){.toast{animation:none}}
 .back{
   font-size:13px;
