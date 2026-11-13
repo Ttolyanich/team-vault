@@ -30,7 +30,7 @@
 <a href="{% url 'home' %}?section=personal" {% if nav_section == 'personal' %}class="active" aria-current="page"{% endif %}>Мои рабочие секреты</a>
 </div>
 {% if user.is_superuser %}
-<details class="nav-admin" {% if nav_section != 'shared' and nav_section != 'personal' %}open{% endif %}><summary>Администрирование</summary><div class="nav-group" role="group" aria-label="Администрирование">
+<details class="nav-admin" {% if is_admin_nav %}open{% endif %}><summary>Администрирование</summary><div class="nav-group" role="group" aria-label="Администрирование">
 <a href="{% url 'team' %}" {% if nav_section == 'team' %}class="active" aria-current="page"{% endif %}>Команда</a>
 <a href="{% url 'staff_directory' %}" {% if nav_section == 'staff_directory' %}class="active" aria-current="page"{% endif %}>Секреты сотрудников</a>
 <a href="{% url 'all_vaults' %}" {% if nav_section == 'all_vaults' %}class="active" aria-current="page"{% endif %}>Все общие хранилища</a>
