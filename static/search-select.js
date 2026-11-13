@@ -13,15 +13,24 @@
     const source = new URL(select.dataset.source, location.href);
     if (source.origin !== location.origin) return;
     const required = select.required;
+    const allowEmptyLabel = select.hasAttribute("data-allow-empty-label");
+    const emptyOption = select.querySelector('option[value=""]');
+    const emptyLabel = emptyOption ? emptyOption.textContent.trim() : "";
     const oldId = select.id || `entity-${++serial}`;
     const root = document.createElement("div"); root.className = "search-choice";
     select.before(root); root.append(select); select.hidden = true; select.required = false; select.id = `${oldId}-value`;
     const input = document.createElement("input"); input.type = "text"; input.id = oldId; input.className = "search-choice-input";
-    input.autocomplete = "off"; input.required = required; input.placeholder = "Начните вводить имя или название";
+    input.autocomplete = "off"; input.required = required; input.placeholder = select.dataset.placeholder || emptyLabel || "Начните вводить имя или название";
     input.setAttribute("role", "combobox"); input.setAttribute("aria-autocomplete", "list"); input.setAttribute("aria-expanded", "false");
     ["aria-describedby", "aria-invalid", "aria-label"].forEach(name => { if (select.hasAttribute(name)) input.setAttribute(name, select.getAttribute(name)); });
-    input.value = (select.value && select.selectedOptions && select.selectedOptions[0]) ? select.selectedOptions[0].textContent : "";
-    const clear = document.createElement("button"); clear.type = "button"; clear.className = "search-choice-clear"; clear.append(icon("M7 7l10 10M17 7L7 17")); clear.setAttribute("aria-label", "Снять выбор"); clear.hidden = required || !select.value;
+    if (select.value && select.selectedOptions && select.selectedOptions[0]) {
+      input.value = select.selectedOptions[0].textContent;
+    } else if (allowEmptyLabel && emptyLabel) {
+      input.value = emptyLabel;
+    } else {
+      input.value = "";
+    }
+    const clear = document.createElement("button"); clear.type = "button"; clear.className = "search-choice-clear"; clear.append(icon("M7 7l10 10M17 7L7 17")); clear.setAttribute("aria-label", "Снять выбор"); clear.hidden = required || (!select.value && (!allowEmptyLabel || input.value === emptyLabel));
     const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "search-choice-toggle"; toggle.append(icon("M6 9l6 6 6-6")); toggle.setAttribute("aria-label", "Открыть список вариантов");
     const panel = document.createElement("div"); panel.className = "search-choice-panel"; panel.setAttribute("popover", "manual");
     const list = document.createElement("div"); list.id = `${oldId}-options`; list.setAttribute("role", "listbox"); input.setAttribute("aria-controls", list.id);
@@ -46,8 +55,11 @@
       else input.removeAttribute("aria-activedescendant");
     };
     const commit = item => {
-      select.replaceChildren(new Option("Не выбрано", ""), new Option(item.label, item.id, true, true));
-      input.value = item.label; clear.hidden = required || !item.id; validity(); close();
+      select.replaceChildren(new Option(emptyLabel || "Не выбрано", ""), item.id ? new Option(item.label, item.id, true, true) : null);
+      if (!item.id) select.value = "";
+      input.value = item.label || (allowEmptyLabel ? emptyLabel : "");
+      clear.hidden = required || (!select.value && (!allowEmptyLabel || input.value === emptyLabel));
+      validity(); close();
       select.dispatchEvent(new Event("change", {bubbles:true}));
       if (select.hasAttribute("data-auto-submit")) select.form?.requestSubmit();
     };
@@ -72,7 +84,11 @@
         const response = await fetch(url, {credentials:"same-origin", signal:controller.signal});
         if (!response.ok) throw new Error();
         const result = await response.json(); if (request !== generation) return;
-        options = next ? options.concat(result.results) : result.results;
+        let fetched = result.results;
+        if (!next && allowEmptyLabel && emptyLabel && (!query || emptyLabel.toLowerCase().includes(query.toLowerCase()))) {
+          fetched = [{ id: "", label: emptyLabel, detail: "Все секреты из всех доступных хранилищ" }].concat(fetched);
+        }
+        options = next ? options.concat(fetched) : fetched;
         render(); status.textContent = options.length ? "" : "Ничего не найдено. Уточните имя или название."; more.hidden = !result.more;
       } catch (error) { if (error.name !== "AbortError" && request === generation) status.textContent = "Не удалось загрузить список. Попробуйте ещё раз."; }
     };
@@ -82,9 +98,9 @@
       if (panel.showPopover) panel.showPopover(); else panel.classList.add("is-open");
       fetchOptions(select.value ? "" : input.value.trim());
     };
-    input.addEventListener("focus", () => { open(); if (select.value) input.select(); });
+    input.addEventListener("focus", () => { open(); if (select.value || (allowEmptyLabel && input.value === emptyLabel)) input.select(); });
     input.addEventListener("click", open);
-    input.addEventListener("input", () => { select.value = ""; clear.hidden = required || !input.value; validity(); open(); clearTimeout(timer); timer = setTimeout(() => fetchOptions(input.value.trim()), 200); });
+    input.addEventListener("input", () => { select.value = ""; clear.hidden = required || (!input.value && (!allowEmptyLabel || input.value === emptyLabel)); validity(); open(); clearTimeout(timer); timer = setTimeout(() => fetchOptions(input.value.trim()), 200); });
     input.addEventListener("keydown", event => {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); if (!opened) open(); if (options.length) setActive(active < 0 ? (event.key === "ArrowDown" ? 0 : options.length - 1) : (active + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length); }
       else if (opened && event.key === "Enter") { event.preventDefault(); if (options[active]) commit(options[active]); }
@@ -92,7 +108,7 @@
       else if (opened && ["Home", "End"].includes(event.key)) { event.preventDefault(); setActive(event.key === "Home" ? 0 : options.length - 1); }
       else if (event.key === "Tab") close();
     });
-    clear.addEventListener("click", event => { event.preventDefault(); commit({id:"",label:""}); });
+    clear.addEventListener("click", event => { event.preventDefault(); commit({id:"",label:allowEmptyLabel ? emptyLabel : ""}); });
     toggle.addEventListener("click", event => { event.preventDefault(); if (opened) close(); else { input.focus(); open(); } });
     more.addEventListener("pointerdown", event => event.preventDefault()); more.addEventListener("click", () => { page += 1; fetchOptions(currentQuery, true); });
     document.addEventListener("pointerdown", event => { if (!root.contains(event.target)) close(); });

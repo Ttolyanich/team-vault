@@ -50,6 +50,8 @@ def workspace(request, *, mode="shared", target=None, vault=None):
             return HttpResponse(status=400)
     if mode in ("personal", "staff"):
         selected = vaults.first()
+    elif mode == "shared" and selected is None and vaults.count() == 1 and "vault" not in request.GET:
+        selected = vaults.first()
     items = Item.objects.filter(vault__in=vaults, deleted=False).select_related("vault", "owner").order_by("-updated_at", "pk")
     if selected:
         items = items.filter(vault=selected)
