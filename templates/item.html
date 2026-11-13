@@ -55,7 +55,7 @@
 <p class="muted">Запрос кода вам не разрешён. Обратитесь к администратору.</p>
 {% endif %}{% else %}
 <p class="muted">Коды подтверждения пока не подключены.</p>
-{% if can_manage_totp %}
+{% if can_add_totp %}
 <details class="totp-setup-quick" style="margin-top:12px;">
 <summary class="button secondary">＋ Подключить TOTP</summary>
 <form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:14px;" data-confirm="Подключить генерацию одноразовых кодов для этой записи?">

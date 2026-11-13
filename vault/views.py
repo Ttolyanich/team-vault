@@ -17,7 +17,7 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_POST
 from authlib.integrations.django_client import OAuth
 from . import crypto
-from .access import permissions, recovery_access, recovery_manager_for, visible_vaults, effective_manager, manages_team, totp_access
+from .access import permissions, recovery_access, recovery_manager_for, visible_vaults, effective_manager, manages_team, totp_access, totp_admin_access, can_setup_totp
 from .forms import ItemForm, VaultForm, TotpForm, RecoveryForm, MicrosoftForm
 from .models import User, Vault, Membership, Item, ItemVersion, TotpConfig, RecoveryCode, AuditEvent, IssuedCode, LoginAttempt, MicrosoftConfig, SystemState
 from .microsoft import microsoft_settings
@@ -216,17 +216,19 @@ def item_detail(request, item_id):
         item = locked_item_for(request, item.pk)
         recovery_manager = recovery_manager_for(item)
         leader = recovery_access(request.user, item)
-        can_manage_totp = totp_access(request.user, item)
+        can_manage_totp = totp_admin_access(request.user, item)
+        has_totp = TotpConfig.objects.filter(item=item).exists()
+        can_add_totp = can_setup_totp(request.user, item)
         payload = crypto.unseal(item.versions.get(number=item.version).payload, f"item:{item.pk}:{item.version}")
         visible_values = {field: payload.get(field, "") for field in ("login", "url", "note")}
         audit(request, "item.opened", item.pk, item.vault, fields=list(visible_values), version=item.version)
     from .views_workspace import vault_url
     versions = item.versions.select_related("author").order_by("-number")
-    return render(request, "item.html", {"item": item, "rights": rights, "leader": leader, "can_manage_totp": can_manage_totp, "visible_values": visible_values,
+    return render(request, "item.html", {"item": item, "rights": rights, "leader": leader, "can_manage_totp": can_manage_totp, "can_add_totp": can_add_totp, "visible_values": visible_values,
         "back_url": vault_url(request.user, item.vault), "recovery_manager": recovery_manager,
         "can_move_item": can_move_item(request.user,item), "can_copy_item": can_copy_item(request.user,item),
         "personal_manager": effective_manager(item.vault.personal_owner) if item.vault.personal_owner_id else None,
-        "has_totp": TotpConfig.objects.filter(item=item).exists(), "totp_form": TotpForm(), "recovery_form": RecoveryForm(),
+        "has_totp": has_totp, "totp_form": TotpForm(), "recovery_form": RecoveryForm(),
         "codes": item.recovery_codes.all() if leader else [], "members": item.vault.memberships.select_related("user"),
         "versions": versions})
 
@@ -306,7 +308,7 @@ def reveal(request, item_id):
 @sensitive_post_parameters("configuration")
 def totp_setup(request, item_id):
     item = item_for(request, item_id)
-    if not totp_access(request.user, item):
+    if not can_setup_totp(request.user, item):
         audit(request, "access.totp_setup_denied", item.pk)
         raise PermissionDenied
     form = TotpForm(request.POST)
@@ -318,7 +320,7 @@ def totp_setup(request, item_id):
         else:
             with transaction.atomic():
                 item = locked_item_for(request, item.pk, lock_team=True)
-                if not totp_access(request.user, item):
+                if not can_setup_totp(request.user, item):
                     raise PermissionDenied
                 current = TotpConfig.objects.filter(item=item).first()
                 revision = current.revision + 1 if current else 1

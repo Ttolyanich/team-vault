@@ -205,6 +205,13 @@ class VaultSecurityTests(TestCase):
         self.as_user(self.member)
         self.assertEqual(self.client.post(reverse("totp_setup", args=[personal_item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 302)
 
+    def test_editor_can_add_initial_totp_but_cannot_replace(self):
+        new_item = Item.objects.create(vault=self.vault, title="Без TOTP", owner=self.member)
+        self.as_user(self.member)
+        self.assertEqual(self.client.post(reverse("totp_setup", args=[new_item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 302)
+        self.assertTrue(TotpConfig.objects.filter(item=new_item).exists())
+        self.assertEqual(self.client.post(reverse("totp_setup", args=[new_item.pk]), {"configuration": self.seed, "confirmed": "on"}).status_code, 403)
+
     def test_personal_manager_scope(self):
         self.member.manager = self.leader
         self.member.save()

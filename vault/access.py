@@ -1,5 +1,5 @@
 from django.db.models import Q
-from .models import Vault, Membership, User, Department
+from .models import Vault, Membership, User, Department, TotpConfig
 
 
 def visible_vaults(user):
@@ -77,7 +77,7 @@ def recovery_access(user, item):
     return bool(user.is_active and manager and manager.pk == user.pk)
 
 
-def totp_access(user, item):
+def totp_admin_access(user, item):
     if not user.is_active:
         return False
     if recovery_access(user, item):
@@ -87,3 +87,15 @@ def totp_access(user, item):
     if user.is_superuser:
         return True
     return False
+
+totp_access = totp_admin_access
+
+
+def can_setup_totp(user, item):
+    if not user.is_active:
+        return False
+    if totp_admin_access(user, item):
+        return True
+    if TotpConfig.objects.filter(item=item).exists():
+        return False
+    return permissions(user, item.vault)["edit"]
