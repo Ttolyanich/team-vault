@@ -7,13 +7,48 @@ from .widgets import search_field
 class ItemForm(forms.Form):
     title = forms.CharField(label="Название", max_length=200)
     vault = forms.ModelChoiceField(label="Хранилище", queryset=Vault.objects.none())
-    login = forms.CharField(label="Логин", max_length=500, required=False)
-    password = forms.CharField(label="Пароль или токен", max_length=10000, required=False, widget=forms.PasswordInput(render_value=False))
+    login = forms.CharField(
+        label="Логин",
+        max_length=500,
+        required=False,
+        widget=forms.TextInput(attrs={
+            "autocomplete": "off",
+            "autocorrect": "off",
+            "autocapitalize": "none",
+            "spellcheck": "false",
+            "data-1p-ignore": "true",
+            "data-lpignore": "true",
+            "data-bwignore": "true",
+        })
+    )
+    password = forms.CharField(
+        label="Пароль или токен",
+        max_length=10000,
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "autocomplete": "new-password",
+                "data-1p-ignore": "true",
+                "data-lpignore": "true",
+                "data-bwignore": "true",
+            }
+        )
+    )
     totp_key = forms.CharField(
         label="Секретный ключ аутентификатора (TOTP)",
         max_length=2048,
         required=False,
-        widget=forms.PasswordInput(render_value=False, attrs={"placeholder": "Секретный ключ или ссылка otpauth://", "autocomplete": "off"}),
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "placeholder": "Секретный ключ или ссылка otpauth://",
+                "autocomplete": "off",
+                "data-1p-ignore": "true",
+                "data-lpignore": "true",
+                "data-bwignore": "true",
+            }
+        ),
         help_text="Если для входа требуется двухфакторная аутентификация (2FA), укажите секрет или ссылку otpauth://."
     )
     url = forms.URLField(label="Адрес сервиса", required=False)
@@ -42,7 +77,16 @@ class VaultForm(forms.Form):
 
 
 class TotpForm(forms.Form):
-    configuration = forms.CharField(label="Строка настройки или секрет аутентификатора", max_length=2048, widget=forms.PasswordInput)
+    configuration = forms.CharField(
+        label="Строка настройки или секрет аутентификатора",
+        max_length=2048,
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "off",
+            "data-1p-ignore": "true",
+            "data-lpignore": "true",
+            "data-bwignore": "true",
+        })
+    )
     confirmed = forms.BooleanField(label="Я проверил код в сервисе и подтверждаю подключение", required=True)
 
 

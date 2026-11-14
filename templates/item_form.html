@@ -7,7 +7,7 @@
 </div>
 </div>
 <section class="panel form-panel">
-<form method="post" class="stack">
+<form method="post" class="stack" autocomplete="off">
 {% csrf_token %}{% if version %}
 <input type="hidden" name="version" value="{{ version }}">
 {% endif %}{{ form.non_field_errors }}{% for field in form %}
@@ -44,7 +44,7 @@
 {% if can_manage_totp %}
 <details style="margin-top:12px;">
 <summary class="button secondary">Заменить подключение TOTP</summary>
-<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:12px;" data-confirm="Заменить подключение кодов? Проверьте, что оно соответствует настройке в сервисе.">
+<form method="post" action="{% url 'totp_setup' item.pk %}" class="stack" style="margin-top:12px;" data-confirm="Заменить подключение кодов? Проверьте, что оно соответствует настройке в сервисе." autocomplete="off">
 {% csrf_token %}
 {{ totp_form.as_p }}
 <button class="button secondary" style="align-self:flex-start;">Сохранить новое подключение</button>

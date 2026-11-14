@@ -252,6 +252,15 @@ class VaultSecurityTests(TestCase):
         self.assertContains(res, "Не удалось прочитать настройку")
         self.assertFalse(Item.objects.filter(title="Invalid TOTP").exists())
 
+    def test_item_form_disables_autofill(self):
+        self.as_user(self.admin)
+        res = self.client.get(reverse("item_new"))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'autocomplete="off"')
+        self.assertContains(res, 'autocomplete="new-password"')
+        self.assertContains(res, 'data-1p-ignore="true"')
+        self.assertContains(res, 'data-bwignore="true"')
+
     def test_personal_manager_scope(self):
         self.member.manager = self.leader
         self.member.save()
