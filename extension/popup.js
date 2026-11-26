@@ -2,6 +2,8 @@
 
 const DEFAULT_SERVER_URL = "https://teamvault-demo.itsg.kz";
 
+const COPY_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>`;
+
 let state = {
   serverUrl: DEFAULT_SERVER_URL,
   token: null,
@@ -30,6 +32,7 @@ const els = {
   emptyText: document.getElementById("empty-text"),
   credentialsList: document.getElementById("credentials-list"),
   appFooter: document.getElementById("app-footer"),
+  userAvatar: document.getElementById("user-avatar"),
   userName: document.getElementById("user-name"),
   linkOpenVault: document.getElementById("link-open-vault"),
   btnLogout: document.getElementById("btn-logout"),
@@ -107,7 +110,7 @@ function extractDomain(urlStr) {
   }
 }
 
-async function copyToClipboard(text, successMsg = "Скопировано в буфер!") {
+async function copyToClipboard(text, successMsg = "Скопировано в буфер обмена!") {
   try {
     await navigator.clipboard.writeText(text);
     showMessage(successMsg, "success");
@@ -150,7 +153,7 @@ function renderCredentials(items) {
       loginRow.className = "cred-login-row";
       loginRow.innerHTML = `
         <span class="cred-login-text" title="${escapeHtml(item.login)}">${escapeHtml(item.login)}</span>
-        <button class="icon-btn btn-copy-login" title="Скопировать логин">📋</button>
+        <button class="btn-copy-login" title="Скопировать логин">${COPY_ICON_SVG}</button>
       `;
       loginRow.querySelector(".btn-copy-login").addEventListener("click", () => {
         copyToClipboard(item.login, "Логин скопирован");
@@ -167,7 +170,7 @@ function renderCredentials(items) {
     btnFill.className = "btn btn-primary";
     btnFill.innerHTML = "⚡ Заполнить";
     btnFill.title = "Автоматически подставить логин и пароль на открытой странице";
-    btnFill.addEventListener("click", () => fillIntoActiveTab(item.id));
+    btnFill.addEventListener("click", () => fillIntoActiveTab(item.id, btnFill));
     actions.appendChild(btnFill);
 
     // Copy Password button
@@ -175,16 +178,16 @@ function renderCredentials(items) {
     btnCopyPwd.className = "btn btn-secondary";
     btnCopyPwd.innerHTML = "🔑 Пароль";
     btnCopyPwd.title = "Запросить и скопировать пароль";
-    btnCopyPwd.addEventListener("click", () => copyPassword(item.id));
+    btnCopyPwd.addEventListener("click", () => copyPassword(item.id, btnCopyPwd));
     actions.appendChild(btnCopyPwd);
 
     // TOTP button
     if (item.has_totp) {
       const btnTotp = document.createElement("button");
-      btnTotp.className = "btn btn-secondary";
-      btnTotp.innerHTML = "⏱ TOTP";
+      btnTotp.className = "btn btn-totp";
+      btnTotp.innerHTML = "⏱ Код TOTP";
       btnTotp.title = "Получить одноразовый код подтверждения";
-      btnTotp.addEventListener("click", () => fetchAndShowTotp(item.id, card));
+      btnTotp.addEventListener("click", () => fetchAndShowTotp(item.id, card, btnTotp));
       actions.appendChild(btnTotp);
     }
 
@@ -198,13 +201,15 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
 }
 
-async function fillIntoActiveTab(itemId) {
+async function fillIntoActiveTab(itemId, btn) {
+  const originalText = btn ? btn.innerHTML : "";
   try {
-    showMessage("Запрос пароля...", "success");
+    if (btn) btn.innerHTML = "⏳ Запрос...";
     const creds = await apiCall(`/api/extension/fill/${itemId}/`, "POST");
 
     if (!state.activeTab || !state.activeTab.id) {
       showMessage("Нет активной вкладки для заполнения", "error");
+      if (btn) btn.innerHTML = originalText;
       return;
     }
 
@@ -216,32 +221,40 @@ async function fillIntoActiveTab(itemId) {
         password: creds.password,
       },
       (response) => {
+        if (btn) btn.innerHTML = originalText;
         if (chrome.runtime.lastError) {
           showMessage("Откройте страницу входа для автоподстановки", "error");
         } else if (response && response.success) {
-          showMessage("Данные подставлены!", "success");
-          window.close();
+          showMessage("Данные успешно подставлены!", "success");
+          setTimeout(() => window.close(), 600);
         } else {
           showMessage("Поля на странице не найдены", "error");
         }
       }
     );
   } catch (err) {
+    if (btn) btn.innerHTML = originalText;
     showMessage(err.message || "Ошибка получения пароля", "error");
   }
 }
 
-async function copyPassword(itemId) {
+async function copyPassword(itemId, btn) {
+  const originalText = btn ? btn.innerHTML : "";
   try {
-    showMessage("Запрос пароля...", "success");
+    if (btn) btn.innerHTML = "⏳...";
     const creds = await apiCall(`/api/extension/fill/${itemId}/`, "POST");
     await copyToClipboard(creds.password, "Пароль скопирован в буфер!");
+    if (btn) {
+      btn.innerHTML = "✓ Скопирован";
+      setTimeout(() => { btn.innerHTML = originalText; }, 1800);
+    }
   } catch (err) {
+    if (btn) btn.innerHTML = originalText;
     showMessage(err.message || "Ошибка получения пароля", "error");
   }
 }
 
-async function fetchAndShowTotp(itemId, cardEl) {
+async function fetchAndShowTotp(itemId, cardEl, btn) {
   try {
     const existingTotp = cardEl.querySelector(".totp-box");
     if (existingTotp) {
@@ -257,7 +270,7 @@ async function fetchAndShowTotp(itemId, cardEl) {
     totpBox.innerHTML = `
       <span class="totp-digits">${res.code}</span>
       <span class="totp-timer">⏳ ${res.seconds_left} сек</span>
-      <button class="btn btn-secondary btn-copy-totp" style="padding:3px 6px;">📋 Скопировать</button>
+      <button class="btn btn-secondary btn-copy-totp" style="min-height:36px; padding:6px 12px; font-size:13px;">Скопировать</button>
     `;
 
     totpBox.querySelector(".btn-copy-totp").addEventListener("click", () => {
@@ -267,7 +280,6 @@ async function fetchAndShowTotp(itemId, cardEl) {
     // Also send to tab to fill if OTP input exists
     if (state.activeTab && state.activeTab.id) {
       chrome.tabs.sendMessage(state.activeTab.id, { action: "FILL_TOTP", code: res.code }, () => {
-        // ignore errors if not on totp page
         if (chrome.runtime.lastError) {}
       });
     }
@@ -306,7 +318,23 @@ async function checkAuthAndInit() {
 
     if (status.authenticated) {
       state.user = status;
-      els.userName.textContent = status.name || status.username;
+      const displayName = status.name || status.username || "User";
+      els.userName.textContent = displayName;
+
+      // Initials for avatar
+      let initial = "U";
+      if (status.name && status.name.trim()) {
+        const parts = status.name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          initial = (parts[0][0] + parts[1][0]).toUpperCase();
+        } else {
+          initial = parts[0][0].toUpperCase();
+        }
+      } else if (status.username) {
+        initial = status.username.replace(/^ad_/i, "").charAt(0).toUpperCase() || "U";
+      }
+      if (els.userAvatar) els.userAvatar.textContent = initial;
+
       els.linkOpenVault.href = state.serverUrl;
       showView("main");
       await loadCredentials();
@@ -383,12 +411,10 @@ els.searchInput.addEventListener("input", (e) => {
 
 // App Startup
 async function init() {
-  // 1. Load saved config
   const stored = await chrome.storage.local.get(["serverUrl", "token"]);
   if (stored.serverUrl) state.serverUrl = stored.serverUrl;
   if (stored.token) state.token = stored.token;
 
-  // 2. Query active tab
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     state.activeTab = tab;
@@ -398,7 +424,6 @@ async function init() {
     console.error("Tab query failed:", err);
   }
 
-  // 3. Check auth
   await checkAuthAndInit();
 }
 
