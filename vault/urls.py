@@ -5,9 +5,16 @@ from . import views_team
 from . import views_trash
 from . import views_workspace, views_choices
 from . import views_transfers
+from . import views_extension
 
 urlpatterns = [
     path("health/", views.health, name="health"), path("login/", views.sign_in, name="login"), path("logout/", views.sign_out, name="logout"),
+    path("api/extension/status/", views_extension.extension_status, name="extension_status"),
+    path("api/extension/login/", views_extension.extension_login, name="extension_login"),
+    path("api/extension/logout/", views_extension.extension_logout, name="extension_logout"),
+    path("api/extension/find/", views_extension.extension_find, name="extension_find"),
+    path("api/extension/fill/<uuid:item_id>/", views_extension.extension_fill, name="extension_fill"),
+    path("api/extension/totp/<uuid:item_id>/", views_extension.extension_totp, name="extension_totp"),
     path("auth/microsoft/", views.sso_start, name="sso_start"), path("auth/microsoft/callback/", views.sso_callback, name="sso_callback"),
     path("", views.home, name="home"), path("vaults/new/", views.vault_new, name="vault_new"), path("vaults/<uuid:vault_id>/members/", views.vault_members, name="members"),
     path("items/new/", views.item_edit, name="item_new"), path("items/<uuid:item_id>/", views.item_detail, name="item"), path("items/<uuid:item_id>/edit/", views.item_edit, name="item_edit"),

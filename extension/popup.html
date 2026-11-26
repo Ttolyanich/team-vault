@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>TeamVault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#2ebd85"/>
+          <path d="M10.5 14v-3a5.5 5.5 0 0 1 11 0v3" stroke="#0e1626" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="7" y="13" width="18" height="14" rx="3" fill="#0e1626"/>
+          <circle cx="16" cy="19" r="2" fill="#2ebd85"/>
+          <path d="M16 20v3" stroke="#2ebd85" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="brand-title">TeamVault</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-settings-toggle" class="icon-btn" title="Настройки подключения">
+        ⚙
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="status-message" class="status-message hidden"></div>
+
+  <!-- View: Settings -->
+  <div id="view-settings" class="view hidden">
+    <div class="view-header">
+      <h3>Настройки сервера</h3>
+      <button id="btn-settings-close" class="icon-btn" title="Закрыть">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="server-url">Адрес сервера TeamVault:</label>
+      <input type="url" id="server-url" placeholder="https://teamvault-demo.itsg.kz" autocomplete="off">
+      <small class="muted">Укажите адрес вашего корпоративного сервера TeamVault.</small>
+    </div>
+    <button id="btn-save-settings" class="btn btn-primary full">Сохранить адрес</button>
+  </div>
+
+  <!-- View: Login -->
+  <div id="view-login" class="view hidden">
+    <div class="view-header">
+      <h3>Вход в систему</h3>
+    </div>
+    <p class="muted">Войдите своей учётной записью TeamVault для доступа к рабочим секретам.</p>
+    <form id="form-login" class="stack">
+      <div class="form-group">
+        <label for="login-username">Логин</label>
+        <input type="text" id="login-username" required placeholder="ivanov" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="login-password">Пароль</label>
+        <input type="password" id="login-password" required placeholder="••••••••••••" autocomplete="current-password">
+      </div>
+      <button type="submit" id="btn-login-submit" class="btn btn-primary full">Войти</button>
+    </form>
+  </div>
+
+  <!-- View: Main -->
+  <div id="view-main" class="view hidden">
+    <!-- Active domain info -->
+    <div class="domain-bar">
+      <span class="domain-label">Сайт:</span>
+      <span id="current-domain" class="domain-name">—</span>
+    </div>
+
+    <!-- Search box -->
+    <div class="search-box">
+      <input type="search" id="search-input" placeholder="Поиск по всем записям..." autocomplete="off">
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-spinner" class="loading hidden">
+      <div class="spinner"></div>
+      <span>Загрузка данных...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state hidden">
+      <p id="empty-text">Для этого сайта нет сохранённых доступов.</p>
+      <small class="muted">Воспользуйтесь поиском выше, чтобы найти любую нужную запись.</small>
+    </div>
+
+    <!-- Credentials List -->
+    <div id="credentials-list" class="credentials-list"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer id="app-footer" class="app-footer">
+    <div id="user-info" class="user-info">
+      <span class="user-avatar">👤</span>
+      <span id="user-name" class="user-name">...</span>
+    </div>
+    <div class="footer-links">
+      <a id="link-open-vault" href="#" target="_blank" class="footer-link">Открыть сайт ↗</a>
+      <button id="btn-logout" class="footer-link-btn" title="Выйти из аккаунта">Выйти</button>
+    </div>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -261,6 +261,56 @@ class VaultSecurityTests(TestCase):
         self.assertContains(res, 'data-1p-ignore="true"')
         self.assertContains(res, 'data-bwignore="true"')
 
+    def test_extension_api_endpoints(self):
+        # 1. Missing header returns 403
+        res = self.client.get(reverse("extension_status"))
+        self.assertEqual(res.status_code, 403)
+
+        headers = {"HTTP_X_TEAMVAULT_EXTENSION": "1"}
+
+        # 2. Status when unauthenticated
+        res = self.client.get(reverse("extension_status"), **headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.json()["authenticated"])
+
+        # 3. Login
+        self.member.set_password("MemberPass123!")
+        self.member.save()
+        res = self.client.post(reverse("extension_login"), data=json.dumps({"username": "member", "password": "MemberPass123!"}), content_type="application/json", **headers)
+        self.assertEqual(res.status_code, 200)
+        token = res.json()["token"]
+        self.assertTrue(token)
+
+        # 4. Status with token in header
+        token_headers = {"HTTP_X_TEAMVAULT_EXTENSION": "1", "HTTP_X_SESSION_KEY": token}
+        res = self.client.get(reverse("extension_status"), **token_headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()["authenticated"])
+        self.assertEqual(res.json()["username"], "member")
+
+        # 5. Find credentials by domain
+        res = self.client.get(reverse("extension_find") + "?domain=example.com", **token_headers)
+        self.assertEqual(res.status_code, 200)
+        items = res.json()["items"]
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["title"], self.item.title)
+        self.assertEqual(items[0]["login"], "work")
+
+        # 6. Fill credentials (gets login & password)
+        res = self.client.post(reverse("extension_fill", args=[self.item.pk]), **token_headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["password"], self.secret)
+
+        # 7. Issue TOTP
+        res = self.client.post(reverse("extension_totp", args=[self.item.pk]), **token_headers)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(len(res.json()["code"]) in (6, 8))
+        self.assertGreater(res.json()["seconds_left"], 0)
+
+        # 8. Logout
+        res = self.client.post(reverse("extension_logout"), **token_headers)
+        self.assertEqual(res.status_code, 200)
+
     def test_personal_manager_scope(self):
         self.member.manager = self.leader
         self.member.save()
