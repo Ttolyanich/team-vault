@@ -59,10 +59,14 @@ def extension_api(view_func=None, *, require_auth=True):
 def extension_status(request):
     if not request.user.is_authenticated:
         return JsonResponse({"authenticated": False})
+    display_name = getattr(request.user, "display_name", "") or request.user.get_full_name() or request.user.username
+    if display_name.startswith("ad_") and request.user.email:
+        display_name = request.user.email.split("@")[0]
     return JsonResponse({
         "authenticated": True,
         "username": request.user.username,
-        "name": request.user.get_full_name() or request.user.username,
+        "name": display_name,
+        "email": getattr(request.user, "email", "") or "",
     })
 
 
@@ -96,11 +100,14 @@ def extension_login(request):
         login(request, user)
         LoginAttempt.objects.filter(key=key).delete()
         audit(request, "extension.login")
+        display_name = getattr(user, "display_name", "") or user.get_full_name() or user.username
+        if display_name.startswith("ad_") and user.email:
+            display_name = user.email.split("@")[0]
         return JsonResponse({
             "status": "ok",
             "token": request.session.session_key,
             "username": user.username,
-            "name": user.get_full_name() or user.username,
+            "name": display_name,
         })
 
     audit(request, "extension.login_denied")

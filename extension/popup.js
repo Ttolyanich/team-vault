@@ -16,15 +16,14 @@ let state = {
 const els = {
   statusMessage: document.getElementById("status-message"),
   viewSettings: document.getElementById("view-settings"),
-  viewLogin: document.getElementById("view-login"),
+  viewAuth: document.getElementById("view-auth"),
   viewMain: document.getElementById("view-main"),
   serverUrlInput: document.getElementById("server-url"),
   btnSettingsToggle: document.getElementById("btn-settings-toggle"),
   btnSettingsClose: document.getElementById("btn-settings-close"),
   btnSaveSettings: document.getElementById("btn-save-settings"),
-  formLogin: document.getElementById("form-login"),
-  loginUsername: document.getElementById("login-username"),
-  loginPassword: document.getElementById("login-password"),
+  btnOpenLogin: document.getElementById("btn-open-login"),
+  btnRefreshAuth: document.getElementById("btn-refresh-auth"),
   currentDomain: document.getElementById("current-domain"),
   searchInput: document.getElementById("search-input"),
   loadingSpinner: document.getElementById("loading-spinner"),
@@ -48,14 +47,14 @@ function showMessage(text, type = "success") {
 
 function showView(name) {
   els.viewSettings.classList.add("hidden");
-  els.viewLogin.classList.add("hidden");
+  if (els.viewAuth) els.viewAuth.classList.add("hidden");
   els.viewMain.classList.add("hidden");
 
   if (name === "settings") {
     els.viewSettings.classList.remove("hidden");
     els.serverUrlInput.value = state.serverUrl;
-  } else if (name === "login") {
-    els.viewLogin.classList.remove("hidden");
+  } else if (name === "auth") {
+    if (els.viewAuth) els.viewAuth.classList.remove("hidden");
     els.appFooter.classList.add("hidden");
   } else if (name === "main") {
     els.viewMain.classList.remove("hidden");
@@ -318,17 +317,21 @@ async function checkAuthAndInit() {
 
     if (status.authenticated) {
       state.user = status;
-      const displayName = status.name || status.username || "User";
+      let displayName = status.name || status.username || "User";
+      if (displayName.startsWith("ad_") && status.email) {
+        displayName = status.email.split("@")[0];
+      }
       els.userName.textContent = displayName;
 
       // Initials for avatar
       let initial = "U";
-      if (status.name && status.name.trim()) {
-        const parts = status.name.trim().split(/\s+/);
-        if (parts.length >= 2) {
-          initial = (parts[0][0] + parts[1][0]).toUpperCase();
+      if (displayName && displayName.trim()) {
+        const parts = displayName.trim().split(/\s+/).filter(p => !/^[A-Za-z0-9_-]{1,6}\d+$/.test(p));
+        const useParts = parts.length > 0 ? parts : displayName.trim().split(/\s+/);
+        if (useParts.length >= 2) {
+          initial = (useParts[0][0] + useParts[1][0]).toUpperCase();
         } else {
-          initial = parts[0][0].toUpperCase();
+          initial = useParts[0][0].toUpperCase();
         }
       } else if (status.username) {
         initial = status.username.replace(/^ad_/i, "").charAt(0).toUpperCase() || "U";
@@ -339,11 +342,11 @@ async function checkAuthAndInit() {
       showView("main");
       await loadCredentials();
     } else {
-      showView("login");
+      showView("auth");
     }
   } catch (err) {
     els.loadingSpinner.classList.add("hidden");
-    showView("login");
+    showView("auth");
   }
 }
 
@@ -368,27 +371,17 @@ els.btnSaveSettings.addEventListener("click", async () => {
   checkAuthAndInit();
 });
 
-els.formLogin.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const username = els.loginUsername.value.trim();
-  const password = els.loginPassword.value;
+if (els.btnOpenLogin) {
+  els.btnOpenLogin.addEventListener("click", () => {
+    chrome.tabs.create({ url: state.serverUrl + "/login/" });
+  });
+}
 
-  els.loadingSpinner.classList.remove("hidden");
-
-  try {
-    const res = await apiCall("/api/extension/login/", "POST", { username, password });
-    els.loadingSpinner.classList.add("hidden");
-
-    state.token = res.token;
-    await chrome.storage.local.set({ token: res.token });
-
-    showMessage("Вход выполнен успешно!", "success");
+if (els.btnRefreshAuth) {
+  els.btnRefreshAuth.addEventListener("click", () => {
     checkAuthAndInit();
-  } catch (err) {
-    els.loadingSpinner.classList.add("hidden");
-    showMessage(err.message || "Неверный логин или пароль", "error");
-  }
-});
+  });
+}
 
 els.btnLogout.addEventListener("click", async () => {
   try {
@@ -398,7 +391,7 @@ els.btnLogout.addEventListener("click", async () => {
   state.user = null;
   await chrome.storage.local.remove(["token"]);
   showMessage("Вы вышли из системы", "success");
-  showView("login");
+  showView("auth");
 });
 
 let searchDebounceTimer = null;
